@@ -66,11 +66,35 @@ tr.detail td{background:var(--bg)}.prices{display:flex;flex-wrap:wrap;gap:8px;ma
 h3{font-size:15px;margin:22px 0 4px}.form{display:grid;grid-template-columns:220px 1fr;gap:12px 18px;max-width:900px;align-items:start}.form>label{color:var(--mute);padding-top:6px}
 .form .hint{font-size:12px;color:var(--mute);margin-top:3px}.chks{display:flex;flex-wrap:wrap;gap:6px 14px}.chk{display:inline-flex;gap:6px;align-items:center}
 pre#log{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;max-height:60vh;overflow:auto;font-size:12px;white-space:pre-wrap}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:4px 0 14px}
+.kgroup{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kgroup h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.k1 .lab{font-size:11.5px;color:var(--mute)}.k1 .val{font-size:19px;font-weight:750;font-variant-numeric:tabular-nums;line-height:1.25}
+.k1 .sub{font-size:11px;color:var(--mute)}.pos{color:var(--good)}.neg{color:var(--bad)}.kbig .val{font-size:24px}
+.calgrid{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(260px,1fr);gap:12px;margin-bottom:14px}
+.calcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.calhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}.calhead b{font-size:16px;min-width:150px;text-align:center}.btn.sm{padding:3px 10px;font-size:13px}
+table.cal{table-layout:fixed;border-collapse:separate;border-spacing:4px}table.cal th{text-align:center;padding:2px;border:0}table.cal th.wk{width:86px}
+table.cal td{border:1px solid var(--line);border-radius:8px;height:70px;vertical-align:top;padding:5px 6px;cursor:pointer;background:var(--panel)}
+table.cal td.wk{border:0;cursor:default;text-align:center;vertical-align:middle;font-weight:700;font-variant-numeric:tabular-nums}
+table.cal td .d{font-size:11px;color:var(--mute)}table.cal td .p{font-size:15px;font-weight:750;text-align:center;margin-top:4px;font-variant-numeric:tabular-nums}
+table.cal td .c{font-size:10.5px;color:var(--mute);text-align:center}
+table.cal td.win{background:color-mix(in srgb,var(--good) 16%,var(--panel));border-color:color-mix(in srgb,var(--good) 40%,var(--line))}table.cal td.win .p{color:var(--good)}
+table.cal td.loss{background:color-mix(in srgb,var(--bad) 14%,var(--panel));border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}table.cal td.loss .p{color:var(--bad)}
+table.cal td.even{background:var(--warn-soft)}table.cal td.open{box-shadow:inset 0 -3px 0 #d9a21b}
+table.cal td.other{opacity:.45}table.cal td.today{outline:2px solid var(--acc);outline-offset:-2px}table.cal td.sel{outline:2px solid var(--ink);outline-offset:-2px}
+table.cal td:hover{filter:brightness(.97)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 3px 0 10px;vertical-align:-1px}.sw:first-child{margin-left:0}
+.sw.win{background:color-mix(in srgb,var(--good) 40%,var(--panel))}.sw.loss{background:color-mix(in srgb,var(--bad) 35%,var(--panel))}.sw.even{background:var(--warn-soft);border:1px solid #d9a21b}.sw.open{background:#d9a21b}
+.mtable{width:100%;margin-top:8px;font-size:13px}.mtable td,.mtable th{padding:6px 5px}
+.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px}.pill.won{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.pill.lost{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}.pill.pending{background:var(--warn-soft);color:var(--warn)}.pill.other{background:var(--chip);color:var(--mute)}
+@media (max-width:900px){.calgrid{grid-template-columns:1fr}table.cal td{height:56px}table.cal td .p{font-size:12.5px}}
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:18px 20px;max-width:560px;width:92vw}
 dialog::backdrop{background:rgba(0,0,0,.35)}.form.dlg{grid-template-columns:150px 1fr;gap:8px 12px;margin-bottom:8px}.form.dlg input,.form.dlg select{width:100%}
 .logbtn{border:1px solid var(--acc);color:var(--acc);background:none;border-radius:6px;padding:3px 9px;font-weight:600;cursor:pointer;font-size:12px}.logbtn:hover{background:var(--acc-soft)}
 .logbtn.done{border-color:var(--line);color:var(--mute)}
-td select.status{padding:3px 4px;font-size:12.5px}td input.co{width:72px;padding:3px 4px;font-size:12.5px}.del{border:0;background:none;color:var(--mute);cursor:pointer;font-size:15px}
+td select.status{padding:3px 6px;font-size:12px;font-weight:700;border-radius:99px;border:1px solid var(--line)}td input.co{width:72px;padding:3px 4px;font-size:12.5px}.del{border:0;background:none;color:var(--mute);cursor:pointer;font-size:15px}
 footer{color:var(--mute);font-size:12px;padding:0 24px 30px;max-width:980px}
 @media (max-width:700px){.grid{grid-template-columns:1fr}.mrow{grid-template-columns:1fr 1fr}.split,.form{grid-template-columns:1fr}}
 </style>
@@ -140,9 +164,20 @@ footer{color:var(--mute);font-size:12px;padding:0 24px 30px;max-width:980px}
     <button class="btn" id="betSettleBtn">Settle results</button><button class="btn" id="manualBtn">Add bet manually</button>
     <button class="btn" id="betBackupBtn">Backup (JSON)</button><label class="btn">Restore<input type="file" id="betRestore" accept="application/json" hidden></label>
   </div>
-  <div class="tiles" id="betTiles"></div>
-  <details open style="margin-bottom:12px"><summary class="small mute" style="cursor:pointer;margin-bottom:6px">Daily P/L</summary>
-    <table class="mini" style="width:auto;min-width:520px"><thead><tr><th>Day (AEDT)</th><th>Bets</th><th>Staked</th><th>P/L</th><th>Expected</th><th>Cumulative</th></tr></thead><tbody id="dayBody"></tbody></table></details>
+  <div class="kpis" id="betKpis"></div>
+  <div class="calgrid">
+    <section class="calcard">
+      <div class="calhead"><button class="btn sm" id="calPrev" aria-label="Previous month">‹</button><b id="calTitle"></b><button class="btn sm" id="calNext" aria-label="Next month">›</button>
+        <button class="btn sm" id="calToday">Today</button><span class="grow"></span><span id="calSummary" class="small"></span></div>
+      <table class="cal"><thead><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th><th class="wk">Week</th></tr></thead><tbody id="calBody"></tbody></table>
+      <div class="small mute" style="margin-top:6px"><span class="sw win"></span>profit <span class="sw loss"></span>loss <span class="sw even"></span>break-even <span class="sw open"></span>bets still open · click a day to see its bets</div>
+    </section>
+    <section class="calcard">
+      <b>By month</b>
+      <table class="mini mtable"><thead><tr><th>Month</th><th class="n">Bets</th><th class="n">W–L</th><th class="n">Staked</th><th class="n">P/L</th><th class="n">ROI</th></tr></thead><tbody id="monthBody"></tbody></table>
+    </section>
+  </div>
+  <div class="filters" id="dayFilter" hidden></div>
   <div class="tablewrap"><table><thead><tr><th>Placed</th><th>Bet</th><th>Bookie</th><th class="n">Odds</th><th class="n">Stake</th><th class="n">EV</th><th>Status</th><th class="n">P/L</th><th class="n">CLV</th><th></th></tr></thead><tbody id="betBody"></tbody></table></div>
   <p class="small mute" style="max-width:900px">Log bets from the EV board with the <b>Log</b> button. Results settle automatically from ESPN after the game (props from game logs, moneylines from final scores); you can override any status, including <b>Cashed Out</b>.
   Daily P/L is grouped by the game's date in Sydney time. <b>Export to Excel</b> builds a workbook (Summary, Bets, Daily) with live formulas: edit statuses, odds, stakes or notes there and use <b>Import from Excel</b> to sync them back.
@@ -174,6 +209,7 @@ footer{color:var(--mute);font-size:12px;padding:0 24px 30px;max-width:980px}
     <label for="setGap">Max model vs market gap %</label><div><input type="number" id="setGap" step="1"><div class="hint">Hides plays where the model disagrees with the market by more than this. Huge gaps are usually stale lines or missing news.</div></div>
     <label for="setWeight">Model weight (0–1)</label><div><input type="number" id="setWeight" step="0.05" min="0" max="1"><div class="hint">1 = pure model. Lower values blend toward the AU no-vig price, which fixes over-confidence. Tune it on the Tracking tab.</div></div>
     <label for="setBankroll">Bankroll (A$)</label><input type="number" id="setBankroll" step="50">
+    <label for="setUnit">Unit size (A$)</label><div><input type="number" id="setUnit" step="1"><div class="hint">Used for "units won" on My bets and in the Excel export.</div></div>
     <label for="setKelly">Kelly fraction %</label><input type="number" id="setKelly" step="5">
     <label for="setCap">Max stake % of bankroll</label><input type="number" id="setCap" step="0.5">
     <label for="setDevig">De-vig method</label><select id="setDevig"><option value="multiplicative">Multiplicative (normalise)</option><option value="additive">Additive</option><option value="power">Power (longshot-aware)</option></select>
@@ -405,7 +441,7 @@ const Settings = (() => {
     bettable: Object.keys(AU_BOOKS).filter(b => b !== "dabble_au"), // dabble_au is paid-plan only on The Odds API
     betfairCommission: 0.05, devig: "multiplicative",
     minEdge: 0.02, minBooks: 2, maxGap: 0.10, modelWeight: 1.0,
-    bankroll: 1000, kellyFraction: 0.25, kellyCap: 0.03,
+    bankroll: 1000, unitSize: 10, kellyFraction: 0.25, kellyCap: 0.03,
     refreshMin: 0, corsProxy: "", espn: true, weather: true, track: true,
     lookaheadH: { nfl: 96, nba: 24 },           // only fetch props for games starting within this many hours
     markets: { nfl: [...SPORTS.nfl.markets], nba: [...SPORTS.nba.markets] },
@@ -1438,65 +1474,89 @@ const XLSX = (() => {
     return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   }
 
-  // ---- styles ------------------------------------------------------------------
-  // index: 0 default, 1 header, 2 date, 3 datetime, 4 money, 5 pct, 6 odds(0.00), 7 int, 8 bold money, 9 bold pct, 10 bold, 11 title
-  const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<numFmts count="4"><numFmt numFmtId="164" formatCode="yyyy-mm-dd"/><numFmt numFmtId="165" formatCode="yyyy-mm-dd hh:mm"/><numFmt numFmtId="166" formatCode="&quot;$&quot;#,##0.00;[Red]-&quot;$&quot;#,##0.00"/><numFmt numFmtId="167" formatCode="0.0%"/></numFmts>
-<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>
-<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF16725C"/><bgColor indexed="64"/></patternFill></fill></fills>
-<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
-<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="12">
-<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
-<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
-<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
-<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
-<xf numFmtId="167" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
-<xf numFmtId="2" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
-<xf numFmtId="1" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
-<xf numFmtId="166" fontId="2" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>
-<xf numFmtId="167" fontId="2" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>
-<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
-<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
-</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
-  const ST = { text: 0, head: 1, date: 2, datetime: 3, money: 4, pct: 5, odds: 6, int: 7, bmoney: 8, bpct: 9, bold: 10 };
+  // ---- styles: registry built per workbook ------------------------------------------
+  // style({fmt, bold, size, color, fill, align, valign, wrap, border, italic}) -> cellXfs index
+  // dxf({color, bold, fill}) -> dxf index for conditional formatting
+  function Styles() {
+    const fmts = [], fonts = ['<font><sz val="11"/><color rgb="FF1D1D1B"/><name val="Calibri"/></font>'],
+      fills = ['<fill><patternFill patternType="none"/></fill>', '<fill><patternFill patternType="gray125"/></fill>'],
+      borders = ['<border><left/><right/><top/><bottom/><diagonal/></border>'], xfs = ['<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'], dxfs = [];
+    const keyOf = new Map();
+    const builtIn = { "0": 1, "0.00": 2, "General": 0 };
+    const idx = (arr, x) => { let i = arr.indexOf(x); if (i < 0) { arr.push(x); i = arr.length - 1; } return i; };
+    const argb = c => "FF" + c.replace("#", "").toUpperCase();
+    function fmtId(code) { if (code == null) return 0; if (code in builtIn) return builtIn[code]; return 164 + idx(fmts, code); }
+    function style(o = {}) {
+      const k = JSON.stringify(o); if (keyOf.has(k)) return keyOf.get(k);
+      const font = `<font>${o.bold ? "<b/>" : ""}${o.italic ? "<i/>" : ""}<sz val="${o.size || 11}"/><color rgb="${argb(o.color || "1D1D1B")}"/><name val="Calibri"/></font>`;
+      const fill = o.fill ? `<fill><patternFill patternType="solid"><fgColor rgb="${argb(o.fill)}"/><bgColor indexed="64"/></patternFill></fill>` : null;
+      const b = o.border ? (typeof o.border === "string" ? { bottom: o.border } : o.border) : null;
+      const side = (n, c) => (c ? `<${n} style="thin"><color rgb="${argb(c)}"/></${n}>` : `<${n}/>`);
+      const border = b ? `<border>${side("left", b.left)}${side("right", b.right)}${side("top", b.top)}${side("bottom", b.bottom)}<diagonal/></border>` : null;
+      const fi = fmtId(o.fmt), fo = idx(fonts, font), fl = fill ? idx(fills, fill) : 0, bo = border ? idx(borders, border) : 0;
+      const al = o.align || o.valign || o.wrap ? `<alignment${o.align ? ` horizontal="${o.align}"` : ""}${o.valign ? ` vertical="${o.valign}"` : ""}${o.wrap ? ' wrapText="1"' : ""}/>` : "";
+      xfs.push(`<xf numFmtId="${fi}" fontId="${fo}" fillId="${fl}" borderId="${bo}" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">${al}</xf>`);
+      keyOf.set(k, xfs.length - 1); return xfs.length - 1;
+    }
+    function dxf(o) {
+      dxfs.push(`<dxf>${o.color || o.bold ? `<font>${o.bold ? "<b/>" : ""}${o.color ? `<color rgb="${argb(o.color)}"/>` : ""}</font>` : ""}${o.fill ? `<fill><patternFill patternType="solid"><fgColor rgb="${argb(o.fill)}"/><bgColor rgb="${argb(o.fill)}"/></patternFill></fill>` : ""}</dxf>`);
+      return dxfs.length - 1;
+    }
+    function xml() {
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+        (fmts.length ? `<numFmts count="${fmts.length}">${fmts.map((f, i) => `<numFmt numFmtId="${164 + i}" formatCode="${xesc(f)}"/>`).join("")}</numFmts>` : "") +
+        `<fonts count="${fonts.length}">${fonts.join("")}</fonts><fills count="${fills.length}">${fills.join("")}</fills><borders count="${borders.length}">${borders.join("")}</borders>` +
+        `<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join("")}</cellXfs>` +
+        `<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>${dxfs.length ? `<dxfs count="${dxfs.length}">${dxfs.join("")}</dxfs>` : ""}</styleSheet>`;
+    }
+    return { style, dxf, xml };
+  }
 
   const xesc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const col = i => { let s = ""; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
 
-  /* sheet: { name, cols: [{w}], rows: [[cell]], freeze: bool, filter: "A1:Z1" }
-     cell: null | {v, s} | {f, v?, s} | string | number */
+  /* sheet: { name, rows: [[cell]], cols: [widths], freeze: "A2", filter: "A1:Z1", heights: {row: pt}, merges: ["A1:D1"],
+              grid: false, tab: "16725C", hidden: true, cf: [{sqref, type, operator, formula, dxf}],
+              validations: [{sqref, list} | {sqref, ref}] }
+     cell: null | number | string | {v, s} | {f, v?, s} */
   function sheetXml(sh) {
-    const rows = sh.rows.map((r, ri) => `<row r="${ri + 1}">` + r.map((c, ci) => {
-      if (c == null || c === "") return "";
-      const ref = col(ci) + (ri + 1);
-      const o = typeof c === "object" ? c : { v: c };
-      const s = o.s ? ` s="${o.s}"` : "";
-      if (o.f != null) {
-        const cached = o.v == null ? "" : typeof o.v === "number" && isFinite(o.v) ? `<v>${o.v}</v>` : "";
-        const t = typeof o.v === "string" ? ` t="str"` : "";
-        return `<c r="${ref}"${s}${t}><f>${xesc(o.f)}</f>${typeof o.v === "string" ? `<v>${xesc(o.v)}</v>` : cached}</c>`;
-      }
-      if (typeof o.v === "number") return isFinite(o.v) ? `<c r="${ref}"${s}><v>${o.v}</v></c>` : "";
-      return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xesc(o.v)}</t></is></c>`;
-    }).join("") + `</row>`).join("");
+    const rows = sh.rows.map((r, ri) => {
+      const h = sh.heights?.[ri + 1];
+      return `<row r="${ri + 1}"${h ? ` ht="${h}" customHeight="1"` : ""}>` + (r || []).map((c, ci) => {
+        if (c == null || c === "") return "";
+        const ref = col(ci) + (ri + 1);
+        const o = typeof c === "object" ? c : { v: c };
+        const s = o.s ? ` s="${o.s}"` : "";
+        if (o.f != null) {
+          const cached = typeof o.v === "number" && isFinite(o.v) ? `<v>${o.v}</v>` : typeof o.v === "string" ? `<v>${xesc(o.v)}</v>` : "";
+          return `<c r="${ref}"${s}${typeof o.v === "string" ? ' t="str"' : ""}><f>${xesc(o.f)}</f>${cached}</c>`;
+        }
+        if (o.v == null || o.v === "") return o.s ? `<c r="${ref}"${s}/>` : "";
+        if (typeof o.v === "number") return isFinite(o.v) ? `<c r="${ref}"${s}><v>${o.v}</v></c>` : `<c r="${ref}"${s}/>`;
+        return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xesc(o.v)}</t></is></c>`;
+      }).join("") + `</row>`;
+    }).join("");
+    const pr = sh.tab || sh.fit ? `<sheetPr>${sh.tab ? `<tabColor rgb="FF${sh.tab}"/>` : ""}${sh.fit ? '<pageSetUpPr fitToPage="1"/>' : ""}</sheetPr>` : "";
     const cols = sh.cols ? `<cols>${sh.cols.map((c, i) => `<col min="${i + 1}" max="${i + 1}" width="${c}" customWidth="1"/>`).join("")}</cols>` : "";
-    const pane = sh.freeze ? `<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
-                           : `<sheetViews><sheetView workbookViewId="0"/></sheetViews>`;
+    let pane = "";
+    if (sh.freeze) { const m = /^([A-Z]+)(\d+)$/.exec(sh.freeze); const ySplit = +m[2] - 1; pane = `<pane ySplit="${ySplit}" topLeftCell="${sh.freeze}" activePane="bottomLeft" state="frozen"/>`; }
+    const view = `<sheetViews><sheetView workbookViewId="0"${sh.grid === false ? ' showGridLines="0"' : ""}${sh.zoom ? ` zoomScale="${sh.zoom}"` : ""}>${pane}</sheetView></sheetViews>`;
+    const merges = sh.merges?.length ? `<mergeCells count="${sh.merges.length}">${sh.merges.map(m => `<mergeCell ref="${m}"/>`).join("")}</mergeCells>` : "";
+    let prio = 1;
+    const cf = (sh.cf || []).map(r => `<conditionalFormatting sqref="${r.sqref}"><cfRule type="${r.type || "cellIs"}" dxfId="${r.dxf}" priority="${prio++}"${r.operator ? ` operator="${r.operator}"` : ""}${r.stop ? ' stopIfTrue="1"' : ""}><formula>${xesc(r.formula)}</formula>${r.formula2 ? `<formula>${xesc(r.formula2)}</formula>` : ""}</cfRule></conditionalFormatting>`).join("");
+    const dv = sh.validations?.length ? `<dataValidations count="${sh.validations.length}">${sh.validations.map(v => `<dataValidation type="list" allowBlank="1" showDropDown="0" sqref="${v.sqref}"><formula1>${v.ref ? xesc(v.ref) : `"${xesc(v.list.join(","))}"`}</formula1></dataValidation>`).join("")}</dataValidations>` : "";
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-${pane}${cols}<sheetData>${rows}</sheetData>${sh.filter ? `<autoFilter ref="${sh.filter}"/>` : ""}${sh.validations ? `<dataValidations count="${sh.validations.length}">${sh.validations.map(v => `<dataValidation type="list" allowBlank="1" showDropDown="0" sqref="${v.sqref}"><formula1>"${xesc(v.list.join(","))}"</formula1></dataValidation>`).join("")}</dataValidations>` : ""}</worksheet>`;
+${pr}${view}<sheetFormatPr defaultRowHeight="16"/>${cols}<sheetData>${rows}</sheetData>${sh.filter ? `<autoFilter ref="${sh.filter}"/>` : ""}${merges}${cf}${dv}<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>${sh.fit ? `<pageSetup paperSize="9" orientation="${sh.fit.landscape ? "landscape" : "portrait"}" fitToWidth="1" fitToHeight="${sh.fit.oneHigh ? 1 : 0}"/>` : ""}</worksheet>`;
   }
 
-  function workbook(sheets) {
+  function workbook(sheets, styles) {
     const files = [
       { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>` },
       { name: "_rels/.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
-      { name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s, i) => `<sheet name="${xesc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>` },
+      { name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView activeTab="0"/></bookViews><sheets>${sheets.map((s, i) => `<sheet name="${xesc(s.name)}" sheetId="${i + 1}"${s.hidden ? ' state="hidden"' : ""} r:id="rId${i + 1}"/>`).join("")}</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>` },
       { name: "xl/_rels/workbook.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` },
-      { name: "xl/styles.xml", data: STYLES },
+      { name: "xl/styles.xml", data: styles.xml() },
       ...sheets.map((s, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: sheetXml(s) })),
     ];
     return zip(files);
@@ -1562,7 +1622,7 @@ ${pane}${cols}<sheetData>${rows}</sheetData>${sh.filter ? `<autoFilter ref="${sh
   }
   const fromSerial = s => (s - 25569) * 864e5; // returns ms as if UTC wall clock
 
-  return { workbook, readSheet, serial, fromSerial, col, ST };
+  return { workbook, Styles, readSheet, serial, fromSerial, col };
 })();
 
 /* ============================================================================
@@ -1654,28 +1714,52 @@ const Bets = (() => {
   }
 
   function stats() {
-    const settled = list.filter(b => b.status !== "Pending");
+    const isSettled = b => b.status !== "Pending";
+    const staking = b => !["Void", "Push", "Pending"].includes(b.status);
+    const settled = list.filter(isSettled);
     const today = sydDate(now());
-    const staked = settled.reduce((s, b) => s + (["Void", "Push"].includes(b.status) ? 0 : b.stake), 0);
+    const dayOf = b => sydDate(Date.parse(b.commence) || b.placedAt);
+    // Monday-based week start and month start (Sydney dates as YYYY-MM-DD strings)
+    const t = new Date(today + "T12:00:00Z"), dow = (t.getUTCDay() + 6) % 7;
+    const weekStart = new Date(t.getTime() - dow * 864e5).toISOString().slice(0, 10), monthStart = today.slice(0, 8) + "01";
+    const sumPL = f => list.filter(f).reduce((s, b) => s + pl(b), 0);
+    const staked = settled.filter(staking).reduce((s, b) => s + b.stake, 0);
     const P = settled.reduce((s, b) => s + pl(b), 0);
+    const pls = settled.map(pl);
+    const wins = pls.filter(x => x > 0).reduce((a, b) => a + b, 0), losses = -pls.filter(x => x < 0).reduce((a, b) => a + b, 0);
     const expSettled = settled.reduce((s, b) => s + (isFinite(b.ev) ? b.ev * b.stake : 0), 0);
     const won = settled.filter(b => b.status === "Won").length, lost = settled.filter(b => b.status === "Lost").length;
     const daily = {};
     for (const b of list) {
-      const d = sydDate(Date.parse(b.commence) || b.placedAt);
-      const x = daily[d] ||= { date: d, bets: 0, settled: 0, staked: 0, pl: 0, exp: 0, pending: 0 };
+      const d = dayOf(b);
+      const x = daily[d] ||= { date: d, bets: 0, settled: 0, won: 0, lost: 0, staked: 0, pl: 0, exp: 0, pending: 0, open: 0 };
       x.bets++;
-      if (b.status === "Pending") x.pending += b.stake;
-      else { x.settled++; if (!["Void", "Push"].includes(b.status)) x.staked += b.stake; x.pl += pl(b); x.exp += isFinite(b.ev) ? b.ev * b.stake : 0; }
+      if (b.status === "Pending") { x.pending += b.stake; x.open++; }
+      else { x.settled++; if (staking(b)) x.staked += b.stake; x.pl += pl(b); x.exp += isFinite(b.ev) ? b.ev * b.stake : 0;
+             if (b.status === "Won") x.won++; if (b.status === "Lost") x.lost++; }
     }
     const days = Object.values(daily).sort((a, b) => a.date.localeCompare(b.date));
     let cum = 0, peak = 0, dd = 0;
     days.forEach(d => { cum += d.pl; d.cum = cum; peak = Math.max(peak, cum); dd = Math.min(dd, cum - peak); });
+    const monthly = {};
+    days.forEach(d => { const m = d.date.slice(0, 7); const x = monthly[m] ||= { month: m, bets: 0, won: 0, lost: 0, staked: 0, pl: 0, exp: 0 };
+      x.bets += d.bets; x.won += d.won; x.lost += d.lost; x.staked += d.staked; x.pl += d.pl; x.exp += d.exp; });
     const clvs = list.map(b => b.clv).filter(x => x != null && isFinite(x));
-    return { n: list.length, settled: settled.length, pending: list.length - settled.length, won, lost, staked, pl: P, roi: staked ? P / staked : NaN,
-      exp: expSettled, today: daily[today]?.pl || 0, todayDate: today, avgEv: Core.mean(list.map(b => b.ev)), clv: Core.mean(clvs),
-      exposure: list.filter(b => b.status === "Pending").reduce((s, b) => s + b.stake, 0), days: days.reverse(), maxDrawdown: dd,
-      bankroll: Settings.get("bankroll") + P };
+    const settledDays = days.filter(d => d.settled);
+    const unit = Settings.get("unitSize") || 10;
+    return {
+      n: list.length, settled: settled.length, pending: list.length - settled.length, won, lost, staked, pl: P, roi: staked ? P / staked : NaN,
+      exp: expSettled, today: daily[today]?.pl || 0, todayDate: today,
+      week: sumPL(b => isSettled(b) && dayOf(b) >= weekStart && dayOf(b) <= today), month: sumPL(b => isSettled(b) && dayOf(b) >= monthStart && dayOf(b) <= today),
+      units: P / unit, unit, strike: won + lost ? won / (won + lost) : NaN, profitFactor: losses ? wins / losses : (wins ? Infinity : NaN),
+      bigWin: pls.length ? Math.max(0, ...pls) : 0, bigLoss: pls.length ? Math.min(0, ...pls) : 0,
+      avgStake: list.length ? list.reduce((s, b) => s + b.stake, 0) / list.length : NaN, avgOdds: Core.mean(list.map(b => b.odds)),
+      avgEv: Core.mean(list.map(b => b.ev)), clv: Core.mean(clvs),
+      winDays: settledDays.filter(d => d.pl > 0).length, lossDays: settledDays.filter(d => d.pl < 0).length,
+      bestDay: settledDays.length ? Math.max(...settledDays.map(d => d.pl)) : 0, worstDay: settledDays.length ? Math.min(...settledDays.map(d => d.pl)) : 0,
+      exposure: list.filter(b => b.status === "Pending").reduce((s, b) => s + b.stake, 0), daily, days: [...days].reverse(),
+      monthly: Object.values(monthly).sort((a, b) => b.month.localeCompare(a.month)), maxDrawdown: dd, bankroll: Settings.get("bankroll") + P,
+    };
   }
 
   /* ---------------------------------------------------------------- Excel */
@@ -1683,100 +1767,285 @@ const Bets = (() => {
     "Odds", "Stake", "Commission", "Implied prob", "Model prob", "Market prob (no-vig)", "EV %", "Expected profit", "Suggested stake",
     "Closing odds", "Closing fair prob", "CLV %", "Status", "Cash-out return", "Result", "Return", "P/L", "Cumulative P/L", "Notes"];
   const C = Object.fromEntries(HEAD.map((h, i) => [h, XLSX.col(i)]));
+  const BET_TYPES = ["Player prop", "Moneyline", "Line", "Total", "Multi", "Other"];
 
-  function exportXlsx() {
+  // Builds the whole workbook. blankRows: empty formula rows after the bets, for typing bets in Excel.
+  function exportXlsx({ blankRows = 500, templateNote = false } = {}) {
     refreshClosing();
-    const S = XLSX.ST, rows = [...list].sort((a, b) => (Date.parse(a.commence) || a.placedAt) - (Date.parse(b.commence) || b.placedAt) || a.placedAt - b.placedAt);
-    const bets = [HEAD.map(h => ({ v: h, s: S.head }))];
-    rows.forEach((b, i) => {
-      const r = i + 2, k = Date.parse(b.commence) || b.placedAt;
-      const ref = h => C[h] + r;
-      bets.push([
-        b.id, { v: XLSX.serial(b.placedAt), s: S.datetime }, { v: Math.floor(XLSX.serial(k)), s: S.date }, { v: XLSX.serial(k), s: S.datetime },
-        b.sport.toUpperCase(), b.event, b.betType, b.marketLabel, b.player, b.selection, b.line ?? "", AU_BOOKS[b.book] || b.book,
-        { v: b.odds, s: S.odds }, { v: b.stake, s: S.money }, { v: b.commission || 0, s: S.pct },
-        { f: `IFERROR(1/${ref("Odds")},"")`, v: 1 / b.odds, s: S.pct },
-        isFinite(b.modelProb) ? { v: +b.modelProb.toFixed(4), s: S.pct } : "", isFinite(b.marketProb) ? { v: +b.marketProb.toFixed(4), s: S.pct } : "",
-        isFinite(b.ev) ? { v: +b.ev.toFixed(4), s: S.pct } : "",
-        { f: `IF(${ref("EV %")}="","",${ref("Stake")}*${ref("EV %")})`, v: isFinite(b.ev) ? b.ev * b.stake : null, s: S.money },
-        isFinite(b.suggestedStake) ? { v: b.suggestedStake, s: S.money } : "",
-        b.closingOdds ? { v: b.closingOdds, s: S.odds } : "", b.closingFair != null ? { v: +b.closingFair.toFixed(4), s: S.pct } : "",
-        { f: `IF(${ref("Closing fair prob")}="","",${ref("Closing fair prob")}*(1+(${ref("Odds")}-1)*(1-${ref("Commission")}))-1)`, v: b.clv ?? null, s: S.pct },
-        b.status, b.cashOut != null ? { v: +b.cashOut, s: S.money } : "", b.actual ?? "",
-        { f: `IF(${ref("Status")}="Won",${ref("Stake")}*(1+(${ref("Odds")}-1)*(1-${ref("Commission")})),IF(OR(${ref("Status")}="Push",${ref("Status")}="Void"),${ref("Stake")},IF(${ref("Status")}="Cashed Out",${ref("Cash-out return")},0)))`,
-          v: b.status === "Won" ? b.stake * net(b) : ["Push", "Void"].includes(b.status) ? b.stake : b.status === "Cashed Out" ? +b.cashOut || 0 : 0, s: S.money },
-        { f: `IF(${ref("Status")}="Won",${ref("Stake")}*(${ref("Odds")}-1)*(1-${ref("Commission")}),IF(${ref("Status")}="Lost",-${ref("Stake")},IF(${ref("Status")}="Cashed Out",${ref("Cash-out return")}-${ref("Stake")},0)))`, v: pl(b), s: S.money },
-        { f: `SUM($${C["P/L"]}$2:${ref("P/L")})`, s: S.money }, b.notes || "",
-      ]);
-    });
-    const n = rows.length + 1, last = Math.max(n, 2);
-    const betsSheet = { name: "Bets", rows: bets, freeze: true, filter: `A1:${XLSX.col(HEAD.length - 1)}${last}`,
-      cols: [13, 16, 11, 16, 6, 34, 11, 11, 20, 14, 6, 14, 7, 9, 10, 9, 9, 11, 8, 10, 10, 9, 10, 8, 11, 10, 9, 10, 10, 12, 30],
-      validations: [{ sqref: `${C.Status}2:${C.Status}5000`, list: STATUSES }] };
-
-    // Daily
-    const B = h => `Bets!$${C[h]}:$${C[h]}`;
-    const dates = [...new Set(rows.map(b => Math.floor(XLSX.serial(Date.parse(b.commence) || b.placedAt))))].sort((a, b) => a - b);
-    const dHead = ["Date", "Bets", "Settled", "Won", "Lost", "Staked (settled)", "P/L", "ROI", "Expected profit", "Actual − expected", "Pending stake", "Cumulative P/L"];
-    const daily = [dHead.map(h => ({ v: h, s: S.head }))];
-    dates.forEach((d, i) => {
-      const r = i + 2, A = `$A${r}`;
-      daily.push([{ v: d, s: S.date }, { f: `COUNTIFS(${B("Date")},${A})`, s: S.int }, { f: `COUNTIFS(${B("Date")},${A},${B("Status")},"<>Pending")`, s: S.int },
-        { f: `COUNTIFS(${B("Date")},${A},${B("Status")},"Won")`, s: S.int }, { f: `COUNTIFS(${B("Date")},${A},${B("Status")},"Lost")`, s: S.int },
-        { f: `SUMIFS(${B("Stake")},${B("Date")},${A},${B("Status")},"<>Pending",${B("Status")},"<>Void",${B("Status")},"<>Push")`, s: S.money },
-        { f: `SUMIFS(${B("P/L")},${B("Date")},${A})`, s: S.money }, { f: `IFERROR(G${r}/F${r},0)`, s: S.pct },
-        { f: `SUMIFS(${B("Expected profit")},${B("Date")},${A},${B("Status")},"<>Pending")`, s: S.money }, { f: `G${r}-I${r}`, s: S.money },
-        { f: `SUMIFS(${B("Stake")},${B("Date")},${A},${B("Status")},"Pending")`, s: S.money }, { f: `SUM($G$2:G${r})`, s: S.money }]);
-    });
-    const dailySheet = { name: "Daily", rows: daily, freeze: true, cols: [12, 7, 8, 7, 7, 15, 12, 9, 15, 16, 13, 15] };
-
-    // Summary
-    const st = stats();
-    const sum = [[{ v: "EV Board · bet log summary", s: S.bold }], [`Exported ${new Date(now()).toLocaleString("en-AU", { timeZone: "Australia/Sydney" })} (Sydney). Edit Status, Odds, Stake, Cash-out return and Notes on the Bets sheet; formulas update. Re-import into EV Board to sync.`], [],
-      [{ v: "Metric", s: S.head }, { v: "Value", s: S.head }]];
-    const settledCnt = `(COUNTA(${B("Bet ID")})-1-COUNTIFS(${B("Status")},"Pending"))`;
-    const stakedF = `SUMIFS(${B("Stake")},${B("Status")},"<>Pending",${B("Status")},"<>Void",${B("Status")},"<>Push")`;
-    const metrics = [
-      ["Starting bankroll", { v: Settings.get("bankroll"), s: S.money }],
-      ["Current bankroll", { f: `B5+SUM(${B("P/L")})`, s: S.bmoney }],
-      ["Total profit / loss", { f: `SUM(${B("P/L")})`, s: S.bmoney }],
-      ["Today's profit / loss", { f: `SUMIFS(${B("P/L")},${B("Date")},TODAY())`, s: S.bmoney }],
-      ["ROI (on settled stakes)", { f: `IFERROR(B7/B15,0)`, s: S.bpct }],
-      ["Bets placed", { f: `COUNTA(${B("Bet ID")})-1`, s: S.int }],
-      ["Settled", { f: settledCnt, s: S.int }],
-      ["Pending", { f: `COUNTIFS(${B("Status")},"Pending")`, s: S.int }],
-      ["Won / lost", { f: `COUNTIFS(${B("Status")},"Won")&" / "&COUNTIFS(${B("Status")},"Lost")` }],
-      ["Strike rate", { f: `IFERROR(COUNTIFS(${B("Status")},"Won")/(COUNTIFS(${B("Status")},"Won")+COUNTIFS(${B("Status")},"Lost")),0)`, s: S.pct }],
-      ["Total staked (settled)", { f: stakedF, s: S.money }],
-      ["Pending exposure", { f: `SUMIFS(${B("Stake")},${B("Status")},"Pending")`, s: S.money }],
-      ["Expected profit (settled, from EV)", { f: `SUMIFS(${B("Expected profit")},${B("Status")},"<>Pending")`, s: S.money }],
-      ["Actual − expected (luck)", { f: `B7-B17`, s: S.money }],
-      ["Average odds", { f: `IFERROR(AVERAGE(${B("Odds")}),"")`, s: S.odds }],
-      ["Average EV % at bet", { f: `IFERROR(AVERAGE(${B("EV %")}),"")`, s: S.pct }],
-      ["Average CLV %", { f: `IFERROR(AVERAGE(${B("CLV %")}),"")`, s: S.pct }],
-      ["Best day", { f: `IFERROR(MAX(Daily!$G:$G),0)`, s: S.money }],
-      ["Worst day", { f: `IFERROR(MIN(Daily!$G:$G),0)`, s: S.money }],
-      ["Max drawdown (at export)", { v: st.maxDrawdown, s: S.money }],
-    ];
-    metrics.forEach(m => sum.push(m));
-    const group = (title, header, values) => {
-      sum.push([], [{ v: title, s: S.bold }], ["Group", "Bets", "Staked", "P/L", "ROI", "Avg EV %", "Avg CLV %"].map(h => ({ v: h, s: S.head })));
-      for (const v of values) {
-        const r = sum.length + 1, crit = `${B(header)},$A${r}`;
-        sum.push([v, { f: `COUNTIFS(${crit})`, s: S.int },
-          { f: `SUMIFS(${B("Stake")},${crit},${B("Status")},"<>Pending",${B("Status")},"<>Void",${B("Status")},"<>Push")`, s: S.money },
-          { f: `SUMIFS(${B("P/L")},${crit})`, s: S.money }, { f: `IFERROR(D${r}/C${r},0)`, s: S.pct },
-          { f: `IFERROR(AVERAGEIFS(${B("EV %")},${crit}),"")`, s: S.pct }, { f: `IFERROR(AVERAGEIFS(${B("CLV %")},${crit}),"")`, s: S.pct }]);
-      }
+    const X = XLSX.Styles();
+    // palette
+    const INK = "1D1D1B", MUTE = "6D6C66", LINE = "E5E3DC", CARD = "F7F6F2", G = "16725C", GS = "D6EFE5", GT = "0F5A47",
+          R = "A5402A", RS = "F6DCD5", RT = "8F2F1A", A = "9A5B00", AS = "FBEFD9", BLUE = "1F4E99", BLUES = "DDE7F6";
+    const MONEY = '"$"#,##0.00;-"$"#,##0.00;"$"0.00', SMONEY = '+"$"#,##0.00;-"$"#,##0.00;"$"0.00', PCT = "0.0%", SPCT = "+0.0%;-0.0%;0.0%",
+          DATE = "d mmm yyyy", DTIME = "d mmm yyyy h:mm", ODDS = "0.00";
+    const st = {
+      head: X.style({ bold: true, color: "FFFFFF", fill: G, valign: "center" }),
+      text: X.style({}), mute: X.style({ color: MUTE, size: 10 }), wrapMute: X.style({ color: MUTE, size: 10, wrap: true, valign: "top" }),
+      title: X.style({ bold: true, size: 20 }), h2: X.style({ bold: true, size: 13 }),
+      date: X.style({ fmt: DATE }), dtime: X.style({ fmt: DTIME }), money: X.style({ fmt: MONEY }), smoney: X.style({ fmt: SMONEY }),
+      pct: X.style({ fmt: PCT }), spct: X.style({ fmt: SPCT }), odds: X.style({ fmt: ODDS }), int: X.style({ fmt: "0" }),
+      input: X.style({ fmt: MONEY, bold: true, color: BLUE, fill: BLUES, border: { left: BLUE, right: BLUE, top: BLUE, bottom: BLUE } }),
+      inputMonth: X.style({ fmt: "mmmm yyyy", bold: true, color: BLUE, fill: BLUES, align: "center", border: { left: BLUE, right: BLUE, top: BLUE, bottom: BLUE } }),
+      cardLabel: X.style({ color: MUTE, size: 10, fill: CARD }), cardSub: X.style({ color: MUTE, size: 9, fill: CARD }),
+      cardMoney: X.style({ fmt: SMONEY, bold: true, size: 18, fill: CARD, align: "left" }), cardMoneyPlain: X.style({ fmt: MONEY, bold: true, size: 18, fill: CARD, align: "left" }),
+      cardPct: X.style({ fmt: SPCT, bold: true, size: 18, fill: CARD, align: "left" }), cardPctPlain: X.style({ fmt: PCT, bold: true, size: 18, fill: CARD, align: "left" }),
+      cardText: X.style({ bold: true, size: 18, fill: CARD, align: "left" }), cardOdds: X.style({ fmt: ODDS, bold: true, size: 18, fill: CARD, align: "left" }),
+      cardUnits: X.style({ fmt: '+0.0" u";-0.0" u";0.0" u"', bold: true, size: 18, fill: CARD, align: "left" }), cardRatio: X.style({ fmt: "0.00", bold: true, size: 18, fill: CARD, align: "left" }),
+      tHead: X.style({ bold: true, color: MUTE, size: 10, border: { bottom: LINE } }), tLabel: X.style({ border: { bottom: LINE } }),
+      tInt: X.style({ fmt: "0", border: { bottom: LINE } }), tMoney: X.style({ fmt: MONEY, border: { bottom: LINE } }),
+      tSMoney: X.style({ fmt: SMONEY, bold: true, border: { bottom: LINE } }), tSPct: X.style({ fmt: SPCT, border: { bottom: LINE } }),
+      tPct: X.style({ fmt: PCT, border: { bottom: LINE } }), tText: X.style({ align: "center", border: { bottom: LINE } }),
+      tMonth: X.style({ fmt: "mmm yyyy", bold: true, border: { bottom: LINE } }), tDate: X.style({ fmt: "ddd d mmm yyyy", border: { bottom: LINE } }),
+      tOdds: X.style({ fmt: ODDS, border: { bottom: LINE } }),
+      dow: X.style({ bold: true, color: MUTE, size: 10, align: "center" }),
+      calDay: X.style({ fmt: "d", color: MUTE, size: 10, border: { left: LINE, right: LINE, top: LINE } }),
+      calPL: X.style({ fmt: '+"$"#,##0.00;-"$"#,##0.00;"$"0.00', bold: true, size: 14, align: "center", border: { left: LINE, right: LINE } }),
+      calN: X.style({ color: MUTE, size: 9, align: "center", border: { left: LINE, right: LINE, bottom: LINE } }),
+      calWeek: X.style({ fmt: '+"$"#,##0.00;-"$"#,##0.00;"$"0.00', bold: true, size: 12, align: "center" }),
+      calWeekLab: X.style({ color: MUTE, size: 9, align: "center" }),
     };
-    const uniq = f => [...new Set(rows.map(f))].filter(Boolean).sort();
-    group("By sport", "Sport", uniq(b => b.sport.toUpperCase()));
-    group("By bet type", "Bet type", uniq(b => b.betType));
-    group("By market", "Market", uniq(b => b.marketLabel));
-    group("By bookie", "Bookie", uniq(b => AU_BOOKS[b.book] || b.book));
-    const summary = { name: "Summary", rows: sum, cols: [34, 14, 12, 12, 9, 10, 10] };
+    const dx = {
+      gFill: X.dxf({ fill: GS, color: GT }), rFill: X.dxf({ fill: RS, color: RT }), aFill: X.dxf({ fill: AS, color: A }),
+      gFont: X.dxf({ color: G, bold: true }), rFont: X.dxf({ color: R, bold: true }), grey: X.dxf({ color: "B9B7AF" }),
+      won: X.dxf({ fill: GS, color: GT, bold: true }), lost: X.dxf({ fill: RS, color: RT, bold: true }), pend: X.dxf({ fill: AS, color: A }),
+      cash: X.dxf({ fill: BLUES, color: BLUE }), blank: X.dxf({ color: "FFFFFF" }),
+    };
+    const posNeg = (sqref, kind = "font") => [
+      { sqref, type: "expression", formula: `AND(ISNUMBER(${sqref.split(":")[0].replace(/\$/g, "")}),${sqref.split(":")[0].replace(/\$/g, "")}>0)`, dxf: kind === "font" ? dx.gFont : dx.gFill },
+      { sqref, type: "expression", formula: `AND(ISNUMBER(${sqref.split(":")[0].replace(/\$/g, "")}),${sqref.split(":")[0].replace(/\$/g, "")}<0)`, dxf: kind === "font" ? dx.rFont : dx.rFill },
+    ];
 
-    return XLSX.workbook([summary, betsSheet, dailySheet]);
+    const rows = [...list].sort((a, b) => (Date.parse(a.commence) || a.placedAt) - (Date.parse(b.commence) || b.placedAt) || a.placedAt - b.placedAt);
+    const END = rows.length + blankRows + 1;
+    const B = h => `Bets!$${C[h]}$2:$${C[h]}$${END}`;
+
+    /* ---------------- Bets */
+    const bets = [HEAD.map(h => ({ v: h, s: st.head }))];
+    for (let i = 0; i < rows.length + blankRows; i++) {
+      const b = rows[i], r = i + 2, ref = h => C[h] + r;
+      const net = `(1+(${ref("Odds")}-1)*(1-N(${ref("Commission")})))`, stt = ref("Status");
+      const k = b ? Date.parse(b.commence) || b.placedAt : null;
+      bets.push([
+        b ? b.id : "", b ? { v: XLSX.serial(b.placedAt), s: st.dtime } : { s: st.dtime },
+        { f: `IF(${ref("Kickoff")}="","",INT(${ref("Kickoff")}))`, v: b ? Math.floor(XLSX.serial(k)) : undefined, s: st.date },
+        b ? { v: XLSX.serial(k), s: st.dtime } : { s: st.dtime },
+        b ? b.sport.toUpperCase() : "", b ? b.event : "", b ? b.betType : "", b ? b.marketLabel : "", b ? b.player : "", b ? b.selection : "",
+        b && b.line != null ? b.line : "", b ? AU_BOOKS[b.book] || b.book : "",
+        b ? { v: b.odds, s: st.odds } : { s: st.odds }, b ? { v: b.stake, s: st.money } : { s: st.money },
+        b ? { v: b.commission || 0, s: st.pct } : { s: st.pct },
+        { f: `IF(${ref("Odds")}="","",1/${ref("Odds")})`, s: st.pct },
+        b && isFinite(b.modelProb) ? { v: +b.modelProb.toFixed(4), s: st.pct } : { s: st.pct },
+        b && isFinite(b.marketProb) ? { v: +b.marketProb.toFixed(4), s: st.pct } : { s: st.pct },
+        { f: `IF(OR(${ref("Model prob")}="",${ref("Odds")}=""),"",${ref("Model prob")}*${net}-1)`, v: b && isFinite(b.ev) ? b.ev : undefined, s: st.spct },
+        { f: `IF(OR(${ref("EV %")}="",${ref("Stake")}=""),"",${ref("Stake")}*${ref("EV %")})`, s: st.smoney },
+        b && isFinite(b.suggestedStake) ? { v: b.suggestedStake, s: st.money } : { s: st.money },
+        b && b.closingOdds ? { v: b.closingOdds, s: st.odds } : { s: st.odds },
+        b && b.closingFair != null ? { v: +b.closingFair.toFixed(4), s: st.pct } : { s: st.pct },
+        { f: `IF(OR(${ref("Closing fair prob")}="",${ref("Odds")}=""),"",${ref("Closing fair prob")}*${net}-1)`, s: st.spct },
+        b ? b.status : "", b && b.cashOut != null ? { v: +b.cashOut, s: st.money } : { s: st.money }, b && b.actual != null ? b.actual : "",
+        { f: `IF(${ref("Stake")}="","",IF(${stt}="Won",${ref("Stake")}*${net},IF(OR(${stt}="Push",${stt}="Void"),${ref("Stake")},IF(${stt}="Cashed Out",N(${ref("Cash-out return")}),0))))`, s: st.money },
+        { f: `IF(${ref("Stake")}="","",IF(${stt}="Won",${ref("Stake")}*(${ref("Odds")}-1)*(1-N(${ref("Commission")})),IF(${stt}="Lost",-${ref("Stake")},IF(${stt}="Cashed Out",N(${ref("Cash-out return")})-${ref("Stake")},0))))`,
+          v: b ? pl(b) : undefined, s: st.smoney },
+        { f: `IF(${ref("Stake")}="","",SUM($${C["P/L"]}$2:${ref("P/L")}))`, s: st.smoney }, b ? b.notes || "" : "",
+      ]);
+    }
+    const col = h => `${C[h]}2:${C[h]}${END}`;
+    const betsSheet = { name: "Bets", rows: bets, freeze: "A2", tab: "6D6C66", fit: { landscape: true }, filter: `A1:${XLSX.col(HEAD.length - 1)}${END}`, heights: { 1: 22 },
+      cols: [13, 16, 12, 16, 7, 30, 12, 12, 20, 14, 7, 16, 8, 10, 11, 10, 10, 12, 9, 12, 11, 10, 11, 9, 12, 12, 9, 11, 11, 13, 30],
+      validations: [{ sqref: col("Status"), ref: "Lists!$A$2:$A$7" }, { sqref: col("Sport"), ref: "Lists!$B$2:$B$3" },
+                    { sqref: col("Bet type"), ref: "Lists!$C$2:$C$7" }, { sqref: col("Bookie"), ref: "Lists!$D$2:$D$14" }],
+      cf: [
+        { sqref: col("Status"), operator: "equal", formula: '"Won"', dxf: dx.won }, { sqref: col("Status"), operator: "equal", formula: '"Lost"', dxf: dx.lost },
+        { sqref: col("Status"), operator: "equal", formula: '"Pending"', dxf: dx.pend }, { sqref: col("Status"), operator: "equal", formula: '"Cashed Out"', dxf: dx.cash },
+        ...posNeg(col("P/L"), "fill"), ...posNeg(col("Cumulative P/L")), ...posNeg(col("CLV %")),
+        { sqref: col("EV %"), type: "expression", formula: `AND(ISNUMBER(${C["EV %"]}2),${C["EV %"]}2>=0.05)`, dxf: dx.gFill },
+        { sqref: col("EV %"), type: "expression", formula: `AND(ISNUMBER(${C["EV %"]}2),${C["EV %"]}2>0,${C["EV %"]}2<0.05)`, dxf: dx.aFill },
+        { sqref: col("EV %"), type: "expression", formula: `AND(ISNUMBER(${C["EV %"]}2),${C["EV %"]}2<0)`, dxf: dx.rFill },
+      ] };
+
+    /* ---------------- Daily (one row per day; drives the calendar's day colours and drawdown) */
+    const nowMs = now();
+    const firstMs = rows.length ? Math.min(...rows.map(b => Date.parse(b.commence) || b.placedAt)) : nowMs;
+    const fd = new Date(XLSX.fromSerial(Math.floor(XLSX.serial(firstMs))));
+    const startSerial = Math.floor(XLSX.serial(Date.UTC(fd.getUTCFullYear(), fd.getUTCMonth(), 1) + 12 * 3600e3)) ; // 1st of first month
+    const lastSerial = Math.floor(XLSX.serial(Math.max(nowMs, ...rows.map(b => Date.parse(b.commence) || 0)))) + 31;
+    const nDays = Math.min(Math.max(lastSerial - startSerial + 1, 366), 1500);
+    const dHead = ["Date", "Bets", "Settled", "Won", "Lost", "Staked", "P/L", "ROI", "Expected", "Actual − exp.", "Pending stake", "Cumulative P/L", "Peak", "Drawdown"];
+    const daily = [dHead.map(h => ({ v: h, s: st.head }))];
+    const settledOn = r => `${B("Date")},$A${r},${B("Status")},"<>Pending",${B("Status")},"<>"`;
+    for (let i = 0; i < nDays; i++) {
+      const r = i + 2, has = `$B${r}>0`;
+      daily.push([
+        i === 0 ? { v: startSerial, s: st.tDate } : { f: `A${r - 1}+1`, s: st.tDate },
+        { f: `COUNTIFS(${B("Date")},$A${r},${B("Stake")},">0")`, s: st.tInt },
+        { f: `IF(${has},COUNTIFS(${settledOn(r)},${B("Stake")},">0"),"")`, s: st.tInt },
+        { f: `IF(${has},COUNTIFS(${B("Date")},$A${r},${B("Status")},"Won"),"")`, s: st.tInt },
+        { f: `IF(${has},COUNTIFS(${B("Date")},$A${r},${B("Status")},"Lost"),"")`, s: st.tInt },
+        { f: `IF(${has},SUMIFS(${B("Stake")},${settledOn(r)},${B("Status")},"<>Void",${B("Status")},"<>Push"),"")`, s: st.tMoney },
+        { f: `SUMIFS(${B("P/L")},${B("Date")},$A${r})`, s: st.tSMoney },
+        { f: `IF(AND(${has},N(F${r})>0),G${r}/F${r},"")`, s: st.tSPct },
+        { f: `IF(${has},SUMIFS(${B("Expected profit")},${settledOn(r)}),"")`, s: st.tMoney },
+        { f: `IF(${has},N(G${r})-N(I${r}),"")`, s: st.tSMoney },
+        { f: `IF(${has},SUMIFS(${B("Stake")},${B("Date")},$A${r},${B("Status")},"Pending")+SUMIFS(${B("Stake")},${B("Date")},$A${r},${B("Status")},""),"")`, s: st.tMoney },
+        { f: `SUM($G$2:G${r})`, s: st.tSMoney }, { f: `MAX(0,$L$2:L${r})`, s: st.tMoney }, { f: `L${r}-M${r}`, s: st.tSMoney },
+      ]);
+    }
+    const DEND = nDays + 1;
+    const dailySheet = { name: "Daily", rows: daily, freeze: "A2", tab: "6D6C66", fit: { landscape: true }, heights: { 1: 22 }, cols: [17, 7, 8, 7, 7, 12, 12, 9, 12, 13, 13, 15, 12, 12],
+      cf: [{ sqref: `A2:N${DEND}`, type: "expression", formula: "$B2=0", dxf: dx.grey }, ...posNeg(`G2:G${DEND}`, "fill"), ...posNeg(`J2:J${DEND}`),
+           ...posNeg(`L2:L${DEND}`), { sqref: `N2:N${DEND}`, type: "expression", formula: "AND(ISNUMBER(N2),N2<0)", dxf: dx.rFont }, ...posNeg(`H2:H${DEND}`)] };
+    const D = c => `Daily!$${c}$2:$${c}$${DEND}`;
+
+    /* ---------------- Calendar */
+    const cal = [], merges = [], cf = [], heights = {};
+    const curMonthSerial = Math.floor(XLSX.serial(nowMs)) - (new Date(XLSX.fromSerial(Math.floor(XLSX.serial(nowMs)))).getUTCDate() - 1);
+    cal[1] = [null, { v: "Profit calendar", s: st.title }]; heights[2] = 30;
+    cal[2] = [null, { v: "Month", s: st.mute }, { v: curMonthSerial, s: st.inputMonth }, null, { v: "← type any date to change month", s: st.mute }];
+    merges.push("C3:D3"); heights[3] = 22;
+    const FIRST = "DATE(YEAR($C$3),MONTH($C$3),1)", START = `(${FIRST}-WEEKDAY(${FIRST},2)+1)`;
+    cal[4] = [null, ...["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => ({ v: d, s: st.dow })), { v: "Week", s: st.dow }];
+    for (let w = 0; w < 6; w++) {
+      const rd = 6 + w * 3, rp = rd + 1, rn = rd + 2; // 1-based rows: date, P/L, count
+      heights[rd] = 16; heights[rp] = 26; heights[rn] = 15;
+      const dRow = [null], pRow = [null], nRow = [null];
+      for (let d = 0; d < 7; d++) {
+        const c = XLSX.col(1 + d), off = w * 7 + d;
+        dRow.push({ f: `${START}+${off}`, s: st.calDay });
+        pRow.push({ f: `IF(COUNTIFS(${B("Date")},${c}${rd},${B("Stake")},">0")=0,"",SUMIFS(${B("P/L")},${B("Date")},${c}${rd}))`, s: st.calPL });
+        nRow.push({ f: `IF(COUNTIFS(${B("Date")},${c}${rd},${B("Stake")},">0")=0,"",COUNTIFS(${B("Date")},${c}${rd},${B("Stake")},">0")&IF(COUNTIFS(${B("Date")},${c}${rd},${B("Stake")},">0")=1," bet"," bets")&IF(COUNTIFS(${B("Date")},${c}${rd},${B("Status")},"Pending")>0," · "&COUNTIFS(${B("Date")},${c}${rd},${B("Status")},"Pending")&" open",""))`, s: st.calN });
+      }
+      dRow.push({ v: "", s: st.calWeekLab }); pRow.push({ f: `IF(COUNT(B${rp}:H${rp})=0,"",SUM(B${rp}:H${rp}))`, s: st.calWeek }); nRow.push({ v: "", s: st.calWeekLab });
+      cal[rd - 1] = dRow; cal[rp - 1] = pRow; cal[rn - 1] = nRow;
+      // colour each whole day block from its P/L cell; grey out other months
+      for (const [rr, rel] of [[rd, `B${rp}`], [rp, `B${rp}`], [rn, `B${rp}`]]) {
+        cf.push({ sqref: `B${rr}:H${rr}`, type: "expression", formula: `AND(ISNUMBER(${rel}),${rel}>0)`, dxf: dx.gFill });
+        cf.push({ sqref: `B${rr}:H${rr}`, type: "expression", formula: `AND(ISNUMBER(${rel}),${rel}<0)`, dxf: dx.rFill });
+        cf.push({ sqref: `B${rr}:H${rr}`, type: "expression", formula: `AND(ISNUMBER(${rel}),${rel}=0)`, dxf: dx.aFill });
+      }
+      cf.push({ sqref: `B${rd}:H${rd}`, type: "expression", formula: `MONTH(B${rd})<>MONTH($C$3)`, dxf: dx.grey });
+      cf.push(...posNeg(`I${rp}:I${rp}`));
+    }
+    // month summary: cards in K and L, aligned with the calendar's week blocks (label / value / spacer rows)
+    const inMonth = `${B("Date")},">="&${FIRST},${B("Date")},"<"&EDATE(${FIRST},1)`;
+    const dIn = `${D("A")},">="&${FIRST},${D("A")},"<"&EDATE(${FIRST},1)`;
+    const pv = { money: X.style({ fmt: SMONEY, bold: true, size: 14, fill: CARD, align: "left" }), plain: X.style({ fmt: MONEY, bold: true, size: 14, fill: CARD, align: "left" }),
+                 pct: X.style({ fmt: SPCT, bold: true, size: 14, fill: CARD, align: "left" }), pctp: X.style({ fmt: PCT, bold: true, size: 14, fill: CARD, align: "left" }),
+                 text: X.style({ bold: true, size: 14, fill: CARD, align: "left" }) };
+    const stakedM = `SUMIFS(${B("Stake")},${inMonth},${B("Status")},"<>Pending",${B("Status")},"<>",${B("Status")},"<>Void",${B("Status")},"<>Push")`;
+    const plM = `SUMIFS(${B("P/L")},${inMonth})`, wonM = `COUNTIFS(${inMonth},${B("Status")},"Won")`, lostM = `COUNTIFS(${inMonth},${B("Status")},"Lost")`;
+    const pairs = [
+      [["Month profit / loss", plM, "money", true], ["Bets", `COUNTIFS(${inMonth},${B("Stake")},">0")`, "text"]],
+      [["Staked (settled)", stakedM, "plain"], ["ROI", `IFERROR((${plM})/(${stakedM}),0)`, "pct", true]],
+      [["Winning days", `COUNTIFS(${dIn},${D("G")},">0")&" of "&(COUNTIFS(${dIn},${D("G")},">0")+COUNTIFS(${dIn},${D("G")},"<0"))`, "text"],
+       ["Strike rate", `IFERROR(${wonM}/(${wonM}+${lostM}),0)`, "pctp"]],
+      [["Best day", `IF(COUNTIFS(${dIn},${D("B")},">0")=0,0,ROUND(SUMPRODUCT(MAX((${D("A")}>=${FIRST})*(${D("A")}<EDATE(${FIRST},1))*(${D("B")}>0)*(${D("G")}+1000000)))-1000000,2))`, "money", true],
+       ["Worst day", `IF(COUNTIFS(${dIn},${D("B")},">0")=0,0,ROUND(1000000-SUMPRODUCT(MAX((${D("A")}>=${FIRST})*(${D("A")}<EDATE(${FIRST},1))*(${D("B")}>0)*(1000000-${D("G")}))),2))`, "money", true]],
+    ];
+    cal[4][10] = { v: "This month", s: st.h2 };
+    pairs.forEach((pair, w) => {
+      const rd = 6 + w * 3; // label on the date row, value on the P/L row, caption row empty
+      pair.forEach(([label, f, sty, signed], j) => {
+        const ci = 10 + j, L = XLSX.col(ci);
+        cal[rd - 1][ci] = { v: label, s: st.cardLabel }; cal[rd][ci] = { f, s: pv[sty] }; cal[rd + 1][ci] = { v: "", s: st.cardSub };
+        if (signed) cf.push(...posNeg(`${L}${rd + 1}:${L}${rd + 1}`));
+      });
+    });
+    for (let i = 0; i < cal.length; i++) cal[i] = cal[i] || [];
+    const calendar = { name: "Calendar", rows: cal, merges, cf, heights, grid: false, tab: G, fit: { landscape: true, oneHigh: true }, cols: [2, 15, 15, 15, 15, 15, 15, 15, 13, 3, 18, 18] };
+
+    /* ---------------- Monthly */
+    const mStart = new Date(XLSX.fromSerial(startSerial));
+    const monthly = [["Month", "Bets", "Won", "Lost", "Staked", "P/L", "ROI", "Strike rate", "Avg odds", "Expected", "Actual − exp.", "Cumulative P/L"].map(h => ({ v: h, s: st.head }))];
+    for (let i = 0; i < 36; i++) {
+      const r = i + 2, mm = Math.floor(XLSX.serial(Date.UTC(mStart.getUTCFullYear(), mStart.getUTCMonth() + i, 1) + 12 * 3600e3));
+      const inM = `${B("Date")},">="&$A${r},${B("Date")},"<"&EDATE($A${r},1)`, has = `$B${r}>0`;
+      monthly.push([{ v: mm, s: st.tMonth }, { f: `COUNTIFS(${inM},${B("Stake")},">0")`, s: st.tInt },
+        { f: `IF(${has},COUNTIFS(${inM},${B("Status")},"Won"),"")`, s: st.tInt }, { f: `IF(${has},COUNTIFS(${inM},${B("Status")},"Lost"),"")`, s: st.tInt },
+        { f: `IF(${has},SUMIFS(${B("Stake")},${inM},${B("Status")},"<>Pending",${B("Status")},"<>",${B("Status")},"<>Void",${B("Status")},"<>Push"),"")`, s: st.tMoney },
+        { f: `IF(${has},SUMIFS(${B("P/L")},${inM}),"")`, s: st.tSMoney }, { f: `IF(AND(${has},N(E${r})>0),F${r}/E${r},"")`, s: st.tSPct },
+        { f: `IF(AND(${has},N(C${r})+N(D${r})>0),C${r}/(C${r}+D${r}),"")`, s: st.tPct },
+        { f: `IF(${has},IFERROR(AVERAGEIFS(${B("Odds")},${inM},${B("Stake")},">0"),""),"")`, s: st.tOdds },
+        { f: `IF(${has},SUMIFS(${B("Expected profit")},${inM},${B("Status")},"<>Pending",${B("Status")},"<>"),"")`, s: st.tMoney },
+        { f: `IF(${has},N(F${r})-N(J${r}),"")`, s: st.tSMoney }, { f: `SUM($F$2:F${r})`, s: st.tSMoney }]);
+    }
+    const monthlySheet = { name: "Monthly", rows: monthly, freeze: "A2", tab: G, fit: { landscape: true }, heights: { 1: 22 }, cols: [12, 7, 7, 7, 12, 12, 9, 11, 9, 12, 13, 15],
+      cf: [{ sqref: "A2:L37", type: "expression", formula: "$B2=0", dxf: dx.grey }, ...posNeg("F2:F37", "fill"), ...posNeg("G2:G37"), ...posNeg("K2:K37"), ...posNeg("L2:L37")] };
+
+    /* ---------------- Dashboard */
+    const dash = [], dm = [], dcf = [], dh = {};
+    const staked = `SUMIFS(${B("Stake")},${B("Status")},"<>Pending",${B("Status")},"<>",${B("Status")},"<>Void",${B("Status")},"<>Push")`;
+    const won = `COUNTIFS(${B("Status")},"Won")`, lost = `COUNTIFS(${B("Status")},"Lost")`;
+    const pendingN = `(COUNTIFS(${B("Status")},"Pending",${B("Stake")},">0")+COUNTIFS(${B("Status")},"",${B("Stake")},">0"))`;
+    dash[1] = [null, { v: "Bet tracker", s: st.title }, null, null, null, null, null, { v: "Starting bankroll", s: st.mute }, { v: Settings.get("bankroll"), s: st.input }];
+    dash[2] = [null, { v: `Updated ${new Date(nowMs).toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric" })} · ${templateNote ? "type bets on the Bets sheet" : "exported from EV Board"}`, s: st.mute },
+      null, null, null, null, null, { v: "Unit size", s: st.mute }, { v: Settings.get("unitSize") || 10, s: st.input }];
+    dh[2] = 32; dh[3] = 18;
+    const TOTAL = "$B$7"; // cell of Total P/L value (first card)
+    const cards = [
+      [["Total profit / loss", `SUM(${B("P/L")})`, "cardMoney", "all settled bets", true], ["Today", `SUMIFS(${B("P/L")},${B("Date")},TODAY())`, "cardMoney", "by game date", true],
+       ["This week", `SUMIFS(${B("P/L")},${B("Date")},">="&(TODAY()-WEEKDAY(TODAY(),2)+1),${B("Date")},"<="&TODAY())`, "cardMoney", "Monday to today", true],
+       ["This month", `SUMIFS(${B("P/L")},${B("Date")},">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1),${B("Date")},"<="&TODAY())`, "cardMoney", "month to date", true]],
+      [["ROI", `IFERROR(${TOTAL}/(${staked}),0)`, "cardPct", "profit ÷ settled stakes", true], ["Bankroll now", `$I$2+${TOTAL}`, "cardMoneyPlain", "starting bankroll + P/L"],
+       ["Units won", `IFERROR(${TOTAL}/$I$3,0)`, "cardUnits", "P/L ÷ unit size", true], ["Strike rate", `IFERROR(${won}/(${won}+${lost}),0)`, "cardPctPlain", `won ÷ (won + lost)`]],
+      [["Bets settled · open", `(${won}+${lost}+COUNTIFS(${B("Status")},"Push")+COUNTIFS(${B("Status")},"Void")+COUNTIFS(${B("Status")},"Cashed Out"))&" · "&${pendingN}`, "cardText", "settled · pending"],
+       ["Won – lost", `${won}&" – "&${lost}`, "cardText", "push / void excluded"],
+       ["Average odds", `IFERROR(AVERAGEIFS(${B("Odds")},${B("Stake")},">0"),0)`, "cardOdds", "decimal"], ["Average stake", `IFERROR(AVERAGEIFS(${B("Stake")},${B("Stake")},">0"),0)`, "cardMoneyPlain", "per bet"]],
+      [["Average EV at bet", `IFERROR(AVERAGE(${B("EV %")}),0)`, "cardPct", "model edge when placed", true], ["Average CLV", `IFERROR(AVERAGE(${B("CLV %")}),0)`, "cardPct", "beat the closing price?", true],
+       ["Expected profit", `SUMIFS(${B("Expected profit")},${B("Status")},"<>Pending",${B("Status")},"<>")`, "cardMoney", "stake × EV, settled bets", true],
+       ["Actual − expected", `${TOTAL}-$H$22`, "cardMoney", "luck so far", true]],
+      [["Biggest win", `MAX(0,${B("P/L")})`, "cardMoney", "single bet", true], ["Biggest loss", `MIN(0,${B("P/L")})`, "cardMoney", "single bet", true],
+       ["Profit factor", `IFERROR(SUMIFS(${B("P/L")},${B("P/L")},">0")/-SUMIFS(${B("P/L")},${B("P/L")},"<0"),0)`, "cardRatio", "winnings ÷ losses (>1 is good)"],
+       ["Max drawdown", `MIN(0,${D("N")})`, "cardMoney", "worst drop from a peak", true]],
+      [["Winning days", `COUNTIFS(${D("G")},">0")&" of "&(COUNTIFS(${D("G")},">0")+COUNTIFS(${D("G")},"<0"))`, "cardText", "days in profit"],
+       ["Best day", `MAX(0,${D("G")})`, "cardMoney", "see Calendar", true], ["Worst day", `MIN(0,${D("G")})`, "cardMoney", "see Calendar", true],
+       ["Open exposure", `SUMIFS(${B("Stake")},${B("Status")},"Pending")+SUMIFS(${B("Stake")},${B("Status")},"",${B("Stake")},">0")`, "cardMoneyPlain", "stakes on pending bets"]],
+    ];
+    let r0 = 5;
+    for (const rowCards of cards) {
+      dash[r0] = [null]; dash[r0 + 1] = [null]; dash[r0 + 2] = [null]; dh[r0 + 1] = 18; dh[r0 + 2] = 30; dh[r0 + 3] = 16;
+      rowCards.forEach(([label, f, sty, sub, signed], j) => {
+        const c1 = 1 + j * 2, L = XLSX.col(c1), Rr = XLSX.col(c1 + 1);
+        dash[r0][c1] = { v: label, s: st.cardLabel }; dash[r0][c1 + 1] = { v: "", s: st.cardLabel };
+        dash[r0 + 1][c1] = { f, s: st[sty] }; dash[r0 + 1][c1 + 1] = { v: "", s: st[sty] };
+        dash[r0 + 2][c1] = { v: sub, s: st.cardSub }; dash[r0 + 2][c1 + 1] = { v: "", s: st.cardSub };
+        dm.push(`${L}${r0 + 1}:${Rr}${r0 + 1}`, `${L}${r0 + 2}:${Rr}${r0 + 2}`, `${L}${r0 + 3}:${Rr}${r0 + 3}`);
+        if (signed) dcf.push(...posNeg(`${L}${r0 + 2}:${L}${r0 + 2}`));
+      });
+      dash[r0 + 3] = []; r0 += 4;
+    }
+    // "Actual − expected" (card 4 of row 4) refers to "Expected profit" (card 3 of row 4)
+    const vIdx = 5 + 3 * 4 + 1; // array index of the value row for card row 4
+    dash[vIdx][7].f = `${TOTAL}-$F$${vIdx + 1}`;
+    // breakdown tables
+    const tables = [["By sport", "Sport", ["NFL", "NBA"]], ["By bet type", "Bet type", BET_TYPES],
+      ["By market", "Market", [...new Set([...rows.map(b => b.marketLabel), ...Object.values(MARKETS).map(m => m.label)])].filter(Boolean)],
+      ["By bookie", "Bookie", Object.values(AU_BOOKS)]];
+    let tr = r0 + 1;
+    for (const [title, field, values] of tables) {
+      dash[tr - 1] = [null, { v: title, s: st.h2 }]; dh[tr] = 22;
+      const thR = X.style({ bold: true, color: MUTE, size: 10, align: "right", border: { bottom: LINE } }), thC = X.style({ bold: true, color: MUTE, size: 10, align: "center", border: { bottom: LINE } });
+      dash[tr] = [null, ...["", "Bets", "Won – lost", "Staked", "Profit / loss", "ROI", "Avg EV", "Avg CLV"].map((h, i) => ({ v: h, s: i === 0 ? st.tHead : i === 2 ? thC : thR }))];
+      values.forEach((v, k) => {
+        const r = tr + 2 + k, crit = `${B(field)},$B${r}`;
+        dash[r - 1] = [null, { v, s: st.tLabel }, { f: `COUNTIFS(${crit},${B("Stake")},">0")`, s: st.tInt },
+          { f: `COUNTIFS(${crit},${B("Status")},"Won")&" – "&COUNTIFS(${crit},${B("Status")},"Lost")`, s: st.tText },
+          { f: `SUMIFS(${B("Stake")},${crit},${B("Status")},"<>Pending",${B("Status")},"<>",${B("Status")},"<>Void",${B("Status")},"<>Push")`, s: st.tMoney },
+          { f: `SUMIFS(${B("P/L")},${crit})`, s: st.tSMoney }, { f: `IFERROR(F${r}/E${r},0)`, s: st.tSPct },
+          { f: `IFERROR(AVERAGEIFS(${B("EV %")},${crit}),"")`, s: st.tSPct }, { f: `IFERROR(AVERAGEIFS(${B("CLV %")},${crit}),"")`, s: st.tSPct }];
+      });
+      const a = tr + 2, z = tr + 1 + values.length;
+      dcf.push({ sqref: `B${a}:I${z}`, type: "expression", formula: `$C${a}=0`, dxf: dx.grey }, ...posNeg(`F${a}:F${z}`), ...posNeg(`G${a}:G${z}`));
+      tr = z + 3;
+    }
+    for (let i = 0; i < dash.length; i++) dash[i] = dash[i] || [];
+    const dashboard = { name: "Dashboard", rows: dash, merges: dm, cf: dcf, heights: dh, grid: false, tab: G, fit: {}, cols: [2, 15, 13, 15, 13, 15, 13, 15, 13] };
+
+    /* ---------------- Lists (dropdown sources, hidden) */
+    const L = [["Status", "Sport", "Bet type", "Bookie"]], books = Object.values(AU_BOOKS);
+    for (let i = 0; i < Math.max(STATUSES.length, 2, BET_TYPES.length, books.length); i++) L.push([STATUSES[i] ?? "", ["NFL", "NBA"][i] ?? "", BET_TYPES[i] ?? "", books[i] ?? ""]);
+    const listsSheet = { name: "Lists", rows: L, hidden: true };
+
+    return XLSX.workbook([dashboard, calendar, monthlySheet, dailySheet, betsSheet, listsSheet], X);
   }
 
   // Merge an edited workbook back: matches on Bet ID; new rows (no ID) become manual bets.
@@ -2162,7 +2431,7 @@ const Demo = (() => {
 /* ============================================================================
    APP: UI, run loop, tabs.
    ========================================================================== */
-const VERSION = "v3 (9 Nov, ESPN fix)";
+const VERSION = "v4 (9 Nov, calendar)";
 const App = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -2346,33 +2615,86 @@ const App = (() => {
     flash("Bet saved to My bets.");
     renderBoard(); renderBets();
   }
+  const fmt2 = x => Math.abs(x).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const signed = x => (isFinite(x) ? (x > 0.0049 ? "+" : x < -0.0049 ? "−" : "") + "$" + fmt2(x) : "—");
+  const dollars = x => (isFinite(x) ? "$" + fmt2(x) : "—");
+  const tone = x => (x > 0.0001 ? "pos" : x < -0.0001 ? "neg" : "");
   function renderBets() {
-    const st = Bets.stats(), c = (x, f = money) => `<b class="${x > 0 ? "good" : x < 0 ? "bad" : ""}">${f(x)}</b>`;
-    $("#betTiles").innerHTML = `
-      <div><span>Today's P/L (${st.todayDate.slice(5)})</span>${c(st.today)}</div>
-      <div><span>Overall P/L</span>${c(st.pl)}</div>
-      <div><span>ROI</span>${c(st.roi, spct)}</div>
-      <div><span>Bankroll now</span><b>${money(st.bankroll)}</b></div>
-      <div><span>Settled · pending</span><b>${st.settled} · ${st.pending}</b></div>
-      <div><span>Won – lost</span><b>${st.won}–${st.lost}</b></div>
-      <div><span>Expected profit (settled)</span>${c(st.exp)}</div>
-      <div><span>Avg EV · avg CLV</span><b>${spct(st.avgEv)} · ${spct(st.clv)}</b></div>
-      <div><span>Pending exposure</span><b>${money(st.exposure)}</b></div>
-      <div><span>Max drawdown</span><b class="${st.maxDrawdown < 0 ? "bad" : ""}">${money(st.maxDrawdown)}</b></div>`;
-    const list = Bets.all();
+    const st = Bets.stats();
+    const k = (lab, val, sub = "", cls = "", big = false) => `<div class="k1${big ? " kbig" : ""}"><div class="lab">${lab}</div><div class="val ${cls}">${val}</div><div class="sub">${sub}</div></div>`;
+    const pf = st.profitFactor;
+    $("#betKpis").innerHTML = `
+      <div class="kgroup"><h4>Profit</h4><div class="kgrid">
+        ${k("Overall", signed(st.pl), `${st.settled} settled bets`, tone(st.pl), true)}${k("Today", signed(st.today), st.todayDate.slice(8) + " " + new Date(st.todayDate + "T12:00:00Z").toLocaleString("en-AU", { month: "short", timeZone: "UTC" }), tone(st.today), true)}
+        ${k("This week", signed(st.week), "Monday to today", tone(st.week))}${k("This month", signed(st.month), "month to date", tone(st.month))}</div></div>
+      <div class="kgroup"><h4>Performance</h4><div class="kgrid">
+        ${k("ROI", spct(st.roi), "profit ÷ settled stakes", tone(st.roi), true)}${k("Bankroll", dollars(st.bankroll), `started ${dollars(Settings.get("bankroll"))}`, "", true)}
+        ${k("Strike rate", pct(st.strike), `${st.won} won · ${st.lost} lost`)}${k("Units", (st.units >= 0 ? "+" : "−") + Math.abs(st.units).toFixed(1) + " u", `unit = ${dollars(st.unit)}`, tone(st.units))}</div></div>
+      <div class="kgroup"><h4>Edge</h4><div class="kgrid">
+        ${k("Avg EV at bet", spct(st.avgEv), "model's edge when placed", tone(st.avgEv))}${k("Avg CLV", spct(st.clv), "vs the closing price", tone(st.clv))}
+        ${k("Expected profit", signed(st.exp), "stake × EV, settled", tone(st.exp))}${k("Actual − expected", signed(st.pl - st.exp), "luck so far", tone(st.pl - st.exp))}</div></div>
+      <div class="kgroup"><h4>Risk</h4><div class="kgrid">
+        ${k("Max drawdown", signed(st.maxDrawdown), "worst drop from a peak", tone(st.maxDrawdown))}${k("Profit factor", isFinite(pf) ? pf.toFixed(2) : pf === Infinity ? "∞" : "—", "wins ÷ losses (>1 good)", isFinite(pf) ? (pf >= 1 ? "pos" : "neg") : "")}
+        ${k("Biggest win", signed(st.bigWin), "single bet", tone(st.bigWin))}${k("Biggest loss", signed(st.bigLoss), "single bet", tone(st.bigLoss))}
+        ${k("Open exposure", dollars(st.exposure), `${st.pending} pending bets`)}${k("Average stake", dollars(st.avgStake), `avg odds ${isFinite(st.avgOdds) ? "$" + st.avgOdds.toFixed(2) : "—"}`)}</div></div>
+      <div class="kgroup"><h4>Days</h4><div class="kgrid">
+        ${k("Winning days", `${st.winDays} of ${st.winDays + st.lossDays}`, "days in profit", st.winDays >= st.lossDays && st.winDays ? "pos" : st.lossDays ? "neg" : "")}${k("Best day", signed(st.bestDay), "see calendar", tone(st.bestDay))}
+        ${k("Worst day", signed(st.worstDay), "see calendar", tone(st.worstDay))}${k("Bets logged", String(st.n), `${st.settled} settled · ${st.pending} open`)}</div></div>`;
+    renderCalendar(st);
+    $("#monthBody").innerHTML = st.monthly.length ? st.monthly.slice(0, 12).map(m => `<tr><td class="nw">${new Date(m.month + "-15T00:00:00Z").toLocaleString("en-AU", { month: "short", year: "numeric", timeZone: "UTC" })}</td>
+      <td class="n">${m.bets}</td><td class="n">${m.won}–${m.lost}</td><td class="n">${dollars(m.staked)}</td><td class="n ${tone(m.pl)}"><b>${signed(m.pl)}</b></td><td class="n ${tone(m.pl)}">${m.staked ? spct(m.pl / m.staked) : "—"}</td></tr>`).join("")
+      : `<tr><td colspan="6" class="mute">No bets yet</td></tr>`;
+    // bets table (optionally filtered to the selected calendar day)
+    const sel = state.betDay;
+    const dayOf = b => new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date(Date.parse(b.commence) || b.placedAt));
+    const list = Bets.all().filter(b => !sel || dayOf(b) === sel);
+    $("#dayFilter").hidden = !sel;
+    if (sel) { const d = st.daily[sel]; $("#dayFilter").innerHTML = `<b>${new Date(sel + "T12:00:00Z").toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })}</b>
+      <span class="${tone(d?.pl || 0)}"><b>${signed(d?.pl || 0)}</b></span><span class="mute">${d ? `${d.bets} bet${d.bets > 1 ? "s" : ""} · staked ${money(d.staked)}${d.open ? ` · ${d.open} open` : ""}` : "no bets"}</span>
+      <button class="btn sm" id="clearDay">Show all bets</button>`; $("#clearDay").onclick = () => { state.betDay = null; renderBets(); }; }
     $("#betBody").innerHTML = list.length ? list.map(b => {
-      const p = Bets.pl(b);
+      const p = Bets.pl(b), pc = b.status === "Won" ? "won" : b.status === "Lost" ? "lost" : b.status === "Pending" ? "pending" : "other";
       return `<tr data-id="${esc(b.id)}"><td class="nw small">${syd(b.placedAt, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</td>
         <td><b>${esc(b.player)}</b> ${esc(b.selection)}<small>${esc(b.sport.toUpperCase())} · ${esc(b.marketLabel)} · ${esc(b.event)}${b.actual != null && b.actual !== "" ? ` · result ${esc(b.actual)}` : ""}</small></td>
-        <td class="nw">${esc(bookName(b.book))}</td><td class="n">${price(b.odds)}</td><td class="n">${money(b.stake)}</td><td class="n">${spct(b.ev)}</td>
-        <td class="nw"><select class="status">${STATUSES.map(s => `<option ${s === b.status ? "selected" : ""}>${s}</option>`).join("")}</select>${b.status === "Cashed Out" ? ` <input class="co" type="number" step="0.01" placeholder="return" value="${b.cashOut ?? ""}">` : ""}</td>
-        <td class="n ${p > 0 ? "good" : p < 0 ? "bad" : "mute"}">${b.status === "Pending" ? "—" : money(p)}</td><td class="n mute">${b.clv != null ? spct(b.clv) : "—"}</td>
+        <td class="nw">${esc(bookName(b.book))}</td><td class="n">${price(b.odds)}</td><td class="n">${money(b.stake)}</td><td class="n ${tone(b.ev)}">${spct(b.ev)}</td>
+        <td class="nw"><select class="status pill ${pc}" aria-label="Status">${STATUSES.map(s => `<option ${s === b.status ? "selected" : ""}>${s}</option>`).join("")}</select>${b.status === "Cashed Out" ? ` <input class="co" type="number" step="0.01" placeholder="return" value="${b.cashOut ?? ""}">` : ""}</td>
+        <td class="n ${tone(p)}"><b>${b.status === "Pending" ? "—" : signed(p)}</b></td><td class="n ${b.clv != null ? tone(b.clv) : "mute"}">${b.clv != null ? spct(b.clv) : "—"}</td>
         <td><button class="del" title="Delete bet">×</button></td></tr>`;
-    }).join("") : `<tr><td colspan="10" class="empty">No bets logged yet. Use the <b>Log</b> button on the EV board.</td></tr>`;
-    $("#dayBody").innerHTML = st.days.slice(0, 30).map(d => `<tr><td>${d.date.slice(5)}</td><td>${d.bets}</td><td>${money(d.staked)}</td>
-      <td class="${d.pl > 0 ? "good" : d.pl < 0 ? "bad" : ""}">${money(d.pl)}</td><td class="mute">${money(d.exp)}</td><td>${money(d.cum)}</td></tr>`).join("") || `<tr><td colspan="6" class="mute">—</td></tr>`;
+    }).join("") : `<tr><td colspan="10" class="empty">${sel ? "No bets on this day." : "No bets logged yet. Use the <b>Log</b> button on the EV board."}</td></tr>`;
   }
+
+  function renderCalendar(st) {
+    const today = st.todayDate;
+    if (!state.calMonth) state.calMonth = today.slice(0, 7);
+    const [y, m] = state.calMonth.split("-").map(Number);
+    const first = new Date(Date.UTC(y, m - 1, 1)), startDow = (first.getUTCDay() + 6) % 7;
+    const start = new Date(first.getTime() - startDow * 864e5);
+    $("#calTitle").textContent = first.toLocaleString("en-AU", { month: "long", year: "numeric", timeZone: "UTC" });
+    const iso = d => d.toISOString().slice(0, 10);
+    let html = "", mPL = 0, mBets = 0, mWin = 0, mLoss = 0, mStaked = 0;
+    for (let w = 0; w < 6; w++) {
+      let row = "<tr>", wPL = 0, wHas = false;
+      for (let d = 0; d < 7; d++) {
+        const day = new Date(start.getTime() + (w * 7 + d) * 864e5), key = iso(day), x = st.daily[key], inMonth = day.getUTCMonth() === m - 1;
+        const cls = [!inMonth && "other", key === today && "today", key === state.betDay && "sel",
+          x && x.settled && (x.pl > 0.0001 ? "win" : x.pl < -0.0001 ? "loss" : "even"), x && x.open && "open"].filter(Boolean).join(" ");
+        if (x && x.settled) { wPL += x.pl; wHas = true; }
+        if (x && inMonth) { mPL += x.pl; mBets += x.bets; mStaked += x.staked; if (x.settled && x.pl > 0) mWin++; if (x.settled && x.pl < 0) mLoss++; }
+        row += `<td class="${cls}" data-day="${key}" title="${key}"><div class="d">${day.getUTCDate()}</div>${x ? `<div class="p">${x.settled ? signed(x.pl) : "open"}</div><div class="c">${x.bets} bet${x.bets > 1 ? "s" : ""}${x.open && x.settled ? ` · ${x.open} open` : ""}</div>` : ""}</td>`;
+      }
+      row += `<td class="wk ${tone(wPL)}">${wHas ? signed(wPL) : ""}</td></tr>`;
+      if (w < 5 || new Date(start.getTime() + w * 7 * 864e5).getUTCMonth() === m - 1) html += row;
+    }
+    $("#calBody").innerHTML = html;
+    $("#calSummary").innerHTML = mBets ? `Month <b class="${tone(mPL)}">${signed(mPL)}</b> · ${mBets} bets · ROI <b class="${tone(mPL)}">${mStaked ? spct(mPL / mStaked) : "—"}</b> · <span class="pos">${mWin} up</span> / <span class="neg">${mLoss} down</span> days` : `<span class="mute">No bets this month</span>`;
+  }
+
   function bindBets() {
+    const shiftMonth = n => { const [y, m] = (state.calMonth || Bets.stats().todayDate.slice(0, 7)).split("-").map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); state.calMonth = d.toISOString().slice(0, 7); renderBets(); };
+    $("#calPrev").addEventListener("click", () => shiftMonth(-1));
+    $("#calNext").addEventListener("click", () => shiftMonth(1));
+    $("#calToday").addEventListener("click", () => { state.calMonth = null; state.betDay = null; renderBets(); });
+    $("#calBody").addEventListener("click", e => { const td = e.target.closest("td[data-day]"); if (!td) return; state.betDay = state.betDay === td.dataset.day ? null : td.dataset.day; renderBets(); });
     $("#betForm").addEventListener("input", previewBet);
     $("#dlgBook").addEventListener("change", e => { const p = (dlgRow?.allPrices || []).find(x => x.book === e.target.value); if (p) $("#betForm").odds.value = p.price; previewBet(); });
     $("#betDlg").addEventListener("close", () => { if ($("#betDlg").returnValue === "save") saveBet(); });
@@ -2475,14 +2797,14 @@ const App = (() => {
       `<label class="chk"><input type="checkbox" data-sport="${k}" value="${m}" ${s.markets[k].includes(m) ? "checked" : ""}> ${MARKETS[m].label}${s.badMarkets.includes(m) ? " (not offered)" : ""}</label>`).join("")}</span></div>`).join("");
     $("#setBooks").innerHTML = Object.entries(AU_BOOKS).map(([k, v]) => `<label class="chk"><input type="checkbox" value="${k}" ${s.bettable.includes(k) ? "checked" : ""}> ${v}</label>`).join("");
     for (const [id, key, mult] of [["setComm", "betfairCommission", 100], ["setMinEdge", "minEdge", 100], ["setMinBooks", "minBooks", 1], ["setGap", "maxGap", 100],
-      ["setWeight", "modelWeight", 1], ["setBankroll", "bankroll", 1], ["setKelly", "kellyFraction", 100], ["setCap", "kellyCap", 100]]) $("#" + id).value = +(s[key] * mult).toFixed(4);
+      ["setWeight", "modelWeight", 1], ["setBankroll", "bankroll", 1], ["setUnit", "unitSize", 1], ["setKelly", "kellyFraction", 100], ["setCap", "kellyCap", 100]]) $("#" + id).value = +(s[key] * mult).toFixed(4);
     $("#setDevig").value = s.devig; $("#setProxy").value = s.corsProxy;
     $("#setEspn").checked = s.espn; $("#setWeather").checked = s.weather; $("#setTrack").checked = s.track;
     $("#minEdge").value = +(s.minEdge * 100).toFixed(2);
   }
   function bindSettings() {
     const numMap = { setComm: ["betfairCommission", 100], setMinEdge: ["minEdge", 100], setMinBooks: ["minBooks", 1], setGap: ["maxGap", 100],
-      setWeight: ["modelWeight", 1], setBankroll: ["bankroll", 1], setKelly: ["kellyFraction", 100], setCap: ["kellyCap", 100] };
+      setWeight: ["modelWeight", 1], setBankroll: ["bankroll", 1], setUnit: ["unitSize", 1], setKelly: ["kellyFraction", 100], setCap: ["kellyCap", 100] };
     Object.entries(numMap).forEach(([id, [k, m]]) => $("#" + id).addEventListener("change", e => { const v = parseFloat(e.target.value); if (isFinite(v)) { Settings.set(k, v / m); renderAll(); } }));
     $("#setApiKey").addEventListener("change", e => Settings.set("apiKey", e.target.value.trim()));
     $("#setDevig").addEventListener("change", e => Settings.set("devig", e.target.value));
