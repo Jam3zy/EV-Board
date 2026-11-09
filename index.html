@@ -449,7 +449,8 @@ const Net = (() => {
       const proxy = Settings.get("corsProxy");
       let res;
       try { res = await fetch(proxy ? proxy + encodeURIComponent(url) : url); }
-      catch (e) { // network failure or the browser refused the cross-origin response
+      catch (e0) { await new Promise(r => setTimeout(r, 700)); try { res = await fetch(proxy ? proxy + encodeURIComponent(url) : url); } catch (e) { res = null; } }
+      if (!res) { // network failure or the browser refused the cross-origin response
         const err = new Error(`blocked or offline — ${new URL(url).host}${location.protocol === "file:" ? " (page opened as a file:// — see the banner)" : ""}`);
         err.blocked = true; err.host = new URL(url).host; throw err;
       }
@@ -563,10 +564,33 @@ const ESPN = (() => {
   }
   const idFromLinks = links => { for (const l of links || []) { const m = /\/id\/(\d+)/.exec(l.href || ""); if (m) return m[1]; } return null; };
 
+  // ESPN team ids (stable for years). Used if the live team list can't be fetched.
+  const STATIC_TEAMS = {
+    nba: [["Atlanta Hawks", 1], ["Boston Celtics", 2], ["New Orleans Pelicans", 3], ["Chicago Bulls", 4], ["Cleveland Cavaliers", 5], ["Dallas Mavericks", 6],
+      ["Denver Nuggets", 7], ["Detroit Pistons", 8], ["Golden State Warriors", 9], ["Houston Rockets", 10], ["Indiana Pacers", 11], ["LA Clippers", 12],
+      ["Los Angeles Lakers", 13], ["Miami Heat", 14], ["Milwaukee Bucks", 15], ["Minnesota Timberwolves", 16], ["Brooklyn Nets", 17], ["New York Knicks", 18],
+      ["Orlando Magic", 19], ["Philadelphia 76ers", 20], ["Phoenix Suns", 21], ["Portland Trail Blazers", 22], ["Sacramento Kings", 23], ["San Antonio Spurs", 24],
+      ["Oklahoma City Thunder", 25], ["Utah Jazz", 26], ["Washington Wizards", 27], ["Toronto Raptors", 28], ["Memphis Grizzlies", 29], ["Charlotte Hornets", 30]],
+    nfl: [["Atlanta Falcons", 1], ["Buffalo Bills", 2], ["Chicago Bears", 3], ["Cincinnati Bengals", 4], ["Cleveland Browns", 5], ["Dallas Cowboys", 6],
+      ["Denver Broncos", 7], ["Detroit Lions", 8], ["Green Bay Packers", 9], ["Tennessee Titans", 10], ["Indianapolis Colts", 11], ["Kansas City Chiefs", 12],
+      ["Las Vegas Raiders", 13], ["Los Angeles Rams", 14], ["Miami Dolphins", 15], ["Minnesota Vikings", 16], ["New England Patriots", 17], ["New Orleans Saints", 18],
+      ["New York Giants", 19], ["New York Jets", 20], ["Philadelphia Eagles", 21], ["Arizona Cardinals", 22], ["Pittsburgh Steelers", 23], ["Los Angeles Chargers", 24],
+      ["San Francisco 49ers", 25], ["Seattle Seahawks", 26], ["Tampa Bay Buccaneers", 27], ["Washington Commanders", 28], ["Carolina Panthers", 29],
+      ["Jacksonville Jaguars", 30], ["Baltimore Ravens", 33], ["Houston Texans", 34]],
+  };
+  // try URL variants in order; return the first that works
+  async function firstOk(urls, opts) {
+    let last;
+    for (const u of urls) { try { return await Net.getJSON(u, opts); } catch (e) { last = e; } }
+    throw last;
+  }
   async function teams(sport) {
-    const d = await Net.getJSON(`${SITE}/${SPORTS[sport].espn}/teams?limit=50`, { ttl: 24 * H });
-    const list = d?.sports?.[0]?.leagues?.[0]?.teams || [];
-    return list.map(x => x.team).map(t => ({ id: String(t.id), abbr: t.abbreviation, name: t.displayName, key: Names.teamKey(t.displayName) }));
+    try {
+      const d = await firstOk([`${SITE}/${SPORTS[sport].espn}/teams`, `${SITE}/${SPORTS[sport].espn}/teams?limit=50`], { ttl: 24 * H });
+      const list = (d?.sports?.[0]?.leagues?.[0]?.teams || []).map(x => x.team);
+      if (list.length) return list.map(t => ({ id: String(t.id), abbr: t.abbreviation, name: t.displayName, key: Names.teamKey(t.displayName) }));
+    } catch (e) { /* fall through to the built-in list */ }
+    return STATIC_TEAMS[sport].map(([name, id]) => ({ id: String(id), abbr: "", name, key: Names.teamKey(name), static: true }));
   }
 
   async function injuries(sport) {
@@ -591,9 +615,12 @@ const ESPN = (() => {
   }
 
   async function roster(sport, teamId) {
-    const d = await Net.getJSON(`${SITE}/${SPORTS[sport].espn}/teams/${teamId}/roster`, { ttl: 6 * H });
-    // NFL groups athletes by unit [{position:"offense", items:[...]}]; NBA is a flat list
-    const flat = (d?.athletes || []).flatMap(a => (Array.isArray(a.items) ? a.items : [a]));
+    const p = SPORTS[sport].espn;
+    const d = await firstOk([`${SITE}/${p}/teams/${teamId}/roster`, `${SITE}/${p}/teams/${teamId}?enable=roster`,
+                             `https://site.web.api.espn.com/apis/site/v2/sports/${p}/teams/${teamId}/roster`], { ttl: 6 * H });
+    // NFL groups athletes by unit [{position:"offense", items:[...]}]; NBA is a flat list; ?enable=roster nests under team.athletes
+    const raw = d?.athletes || d?.team?.athletes || [];
+    const flat = raw.flatMap(a => (Array.isArray(a.items) ? a.items : [a]));
     return flat.map(a => ({
       athleteId: String(a.id), player: a.displayName || a.fullName, pkey: Names.norm(a.displayName || a.fullName),
       position: a.position?.abbreviation || "", teamId: String(teamId),
@@ -601,9 +628,19 @@ const ESPN = (() => {
     }));
   }
 
-  async function scoreboard(sport, dates) { // dates: "YYYYMMDD" or "YYYYMMDD-YYYYMMDD" (US Eastern)
-    const d = await Net.getJSON(`${SITE}/${SPORTS[sport].espn}/scoreboard?dates=${dates}&limit=200`, { ttl: 5 * 60e3 });
-    return (d?.events || []).map(ev => {
+  // dates: "YYYYMMDD", "YYYYMMDD-YYYYMMDD" or an array of days (US Eastern). Fetched one day at a time:
+  // ESPN rejects some range/limit combinations with a 400.
+  async function scoreboard(sport, dates) {
+    let days = Array.isArray(dates) ? dates : String(dates).split("-");
+    if (days.length === 2 && !Array.isArray(dates)) { // expand a range into days
+      const a = Date.UTC(+days[0].slice(0, 4), +days[0].slice(4, 6) - 1, +days[0].slice(6)), b = Date.UTC(+days[1].slice(0, 4), +days[1].slice(4, 6) - 1, +days[1].slice(6));
+      days = []; for (let t = a; t <= b && days.length < 10; t += 864e5) days.push(new Date(t).toISOString().slice(0, 10).replace(/-/g, ""));
+    }
+    const res = await Promise.all(days.map(d => Net.getJSON(`${SITE}/${SPORTS[sport].espn}/scoreboard?dates=${d}`, { ttl: 5 * 60e3 }).catch(e => ({ __err: e }))));
+    const ok = res.filter(r => !r.__err);
+    if (!ok.length) throw res[0].__err;
+    const seen = new Set();
+    return ok.flatMap(d => d?.events || []).filter(ev => !seen.has(ev.id) && seen.add(ev.id)).map(ev => {
       const c = ev.competitions?.[0] || {};
       const side = ha => { const x = (c.competitors || []).find(k => k.homeAway === ha) || {}; const t = x.team || {};
         return { id: String(t.id || ""), abbr: t.abbreviation, name: t.displayName, key: Names.teamKey(t.displayName),
@@ -996,6 +1033,7 @@ const Model = (() => {
         ESPN.scoreboard(sport, range).catch(e => (log("  ESPN scoreboard failed: " + e.message), [])),
       ]);
       teams = t; injuries = inj; standings = st; sb = board;
+      if (teams[0]?.static) log("  using built-in ESPN team list (live team list unavailable)");
     }
     const lgAllowed = C_.mean(Object.values(standings).map(s => s.ppgAllowed));
     const teamByKey = Object.fromEntries(teams.map(t => [t.key, t]));
@@ -1802,6 +1840,11 @@ const Demo = (() => {
     ["Green Bay Packers", "GB"], ["Chicago Bears", "CHI"], ["Baltimore Ravens", "BAL"], ["San Francisco 49ers", "SF"],
     ["Detroit Lions", "DET"], ["Miami Dolphins", "MIA"], ["Cincinnati Bengals", "CIN"], ["Denver Broncos", "DEN"],
     ["Seattle Seahawks", "SEA"], ["Pittsburgh Steelers", "PIT"], ["Houston Texans", "HOU"], ["Los Angeles Rams", "LAR"]];
+  // real ESPN team ids, so the demo exercises the same ids as the built-in fallback list
+  const ESPN_IDS = { nba: { "Boston Celtics": 2, "New York Knicks": 18, "Denver Nuggets": 7, "LA Clippers": 12, "Golden State Warriors": 9, "Milwaukee Bucks": 15, "Phoenix Suns": 21, "Dallas Mavericks": 6 },
+    nfl: { "Kansas City Chiefs": 12, "Buffalo Bills": 2, "Philadelphia Eagles": 21, "Dallas Cowboys": 6, "Green Bay Packers": 9, "Chicago Bears": 3, "Baltimore Ravens": 33,
+      "San Francisco 49ers": 25, "Detroit Lions": 8, "Miami Dolphins": 15, "Cincinnati Bengals": 4, "Denver Broncos": 7, "Seattle Seahawks": 26, "Pittsburgh Steelers": 23,
+      "Houston Texans": 34, "Los Angeles Rams": 14 } };
   const BOOKS = ["sportsbet", "tab", "ladbrokes_au", "neds", "pointsbetau", "betr_au", "unibet", "betright", "playup", "betfair_ex_au"];
   const DAY = 864e5;
 
@@ -1811,7 +1854,7 @@ const Demo = (() => {
     const W = { nba: { teams: [], players: [], games: [] }, nfl: { teams: [], players: [], games: [] }, injuryStart: now - 3 * DAY };
     // --- NBA
     NBA_T.forEach(([n, ab, oddsName], i) => {
-      const t = { id: String(i + 1), name: n, abbr: ab, oddsName: oddsName || n, def: 1 + 0.06 * N("def" + n), pace: 1 + 0.03 * N("pace" + n), str: N("str" + n) };
+      const t = { id: String(ESPN_IDS.nba[n]), name: n, abbr: ab, oddsName: oddsName || n, def: 1 + 0.06 * N("def" + n), pace: 1 + 0.03 * N("pace" + n), str: N("str" + n) };
       W.nba.teams.push(t);
       [["G", 34], ["G", 31], ["F", 33], ["F", 29], ["C", 30], ["G", 21], ["F", 19], ["C", 15]].forEach(([pos, m], j) => {
         const nm = name("nba" + i + j);
@@ -1822,7 +1865,7 @@ const Demo = (() => {
     });
     // --- NFL
     NFL_T.forEach(([n, ab], i) => {
-      const t = { id: String(i + 11), name: n, abbr: ab, oddsName: n, def: 1 + 0.08 * N("def" + n), str: N("str" + n),
+      const t = { id: String(ESPN_IDS.nfl[n]), name: n, abbr: ab, oddsName: n, def: 1 + 0.08 * N("def" + n), str: N("str" + n),
                   att: 34 + 3 * N("att" + n), car: 26 + 2.5 * N("car" + n), indoor: ["Dallas Cowboys", "Detroit Lions", "Houston Texans", "Los Angeles Rams"].includes(n) };
       W.nfl.teams.push(t);
       [["QB", 0, 0], ["RB", 0.62, 0.10], ["RB", 0.30, 0.05], ["WR", 0, 0.26], ["WR", 0, 0.20], ["WR", 0, 0.13], ["TE", 0, 0.17]].forEach(([pos, rs, ts], j) => {
@@ -2033,7 +2076,8 @@ const Demo = (() => {
       const athletes = W.players.filter(p => p.team === m[1]).map(p => ({ id: p.id, displayName: p.name, fullName: p.name, position: { abbreviation: p.pos } }));
       return sport === "nfl" ? { athletes: [{ position: "offense", items: athletes }] } : { athletes };
     }
-    if (/\/teams\?/.test(url)) return { sports: [{ leagues: [{ teams: W.teams.map(t => ({ team: { id: t.id, abbreviation: t.abbr, displayName: t.name } })) }] }] };
+    if (api.failTeams && /\/teams(\?|$)/.test(url)) throw Object.assign(new Error("blocked or offline — site.api.espn.com"), { blocked: true });
+    if (/\/teams(\?|$)/.test(url)) return { sports: [{ leagues: [{ teams: W.teams.map(t => ({ team: { id: t.id, abbreviation: t.abbr, displayName: t.name } })) }] }] };
     if (/\/injuries/.test(url)) {
       if (api.clock < world.injuryStart) return { injuries: [] };
       const byTeam = {};
