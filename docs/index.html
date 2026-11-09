@@ -161,7 +161,7 @@ footer{color:var(--mute);font-size:12px;padding:0 24px 30px;max-width:980px}
   <div class="filters">
     <div class="seg multi" id="tierTabs" title="Tick any mix of ratings"></div>
     <select id="l5Sel" title="How many of the player's last 5 games cleared today's line for this side"></select>
-    <label class="f">Stake A$ <input type="number" id="stakeMin" min="0" step="5" placeholder="min"> to <input type="number" id="stakeMax" min="0" step="5" placeholder="max"></label>
+    <label class="f" title="Best available price (decimal odds), e.g. 1.60 to 2.00">Odds $ <input type="number" id="oddsMin" min="1" step="0.05" placeholder="1.60"> to <input type="number" id="oddsMax" min="1" step="0.05" placeholder="2.00"></label>
     <button class="btn sm" id="fltReset" type="button" hidden>Reset filters</button>
   </div>
   <div class="selbar" id="selBar" hidden><b id="selCount"></b><button class="btn primary sm" id="selCopy">Copy for Excel</button>
@@ -2799,7 +2799,7 @@ const Demo = (() => {
 /* ============================================================================
    APP: UI, run loop, tabs.
    ========================================================================== */
-const VERSION = "v6 (9 Nov, filters + copy to Excel)";
+const VERSION = "v6.1 (9 Nov, odds filter)";
 const App = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -2817,7 +2817,7 @@ const App = (() => {
 
   /* ---------------------------------------------------------------- board filters (kept between visits) */
   function loadFilters() {
-    const d = { tiers: ["g", "y"], l5: "", stakeMin: "", stakeMax: "" };
+    const d = { tiers: ["g", "y"], l5: "", oddsMin: "", oddsMax: "" };
     try { return Object.assign(d, JSON.parse(localStorage.getItem("evbet.filters.v1") || "{}")); } catch (e) { return d; }
   }
   function saveFilters() { try { localStorage.setItem("evbet.filters.v1", JSON.stringify(state.flt)); } catch (e) {} }
@@ -3011,7 +3011,7 @@ const App = (() => {
   // skip: name of one filter to ignore (used for the counts shown on that filter's buttons)
   function filtered(skip) {
     const F = state.flt, tiers = new Set(F.tiers), l5 = L5_OPTS[F.l5] || L5_OPTS[""];
-    const sMin = parseFloat(F.stakeMin), sMax = parseFloat(F.stakeMax);
+    const oMin = parseFloat(F.oddsMin), oMax = parseFloat(F.oddsMax);
     const minEdge = Settings.get("minEdge"), minBooks = Settings.get("minBooks"), gap = Settings.get("maxGap");
     return state.rows.filter(r => {
       if (r.noBook) return false;
@@ -3020,8 +3020,8 @@ const App = (() => {
       // Strong / Lean must also clear Min EV and the market checks; Avoid rows are shown as-is when ticked
       if (t !== "r" && !(r.ev >= minEdge && (r.nBooks || 0) >= minBooks && (!isFinite(r.marketProb) || Math.abs(r.modelProb - r.marketProb) <= gap))) return false;
       if (F.l5 && skip !== "l5") { const h = l5Hits(r); if (h == null || !l5(h)) return false; }
-      if (isFinite(sMin) && !(r.stake >= sMin)) return false;
-      if (isFinite(sMax) && !(r.stake <= sMax)) return false;
+      if (isFinite(oMin) && !(r.bestPrice >= oMin)) return false;
+      if (isFinite(oMax) && !(r.bestPrice <= oMax)) return false;
       return (skip === "sport" || !state.sport || r.sport === state.sport) && (!state.book || r.bestBook === state.book) &&
       (!state.market || r.market === state.market) &&
       (!state.q || `${r.player} ${r.team} ${r.home} ${r.away}`.toLowerCase().includes(state.q));
@@ -3032,9 +3032,9 @@ const App = (() => {
     $("#tierTabs").innerHTML = ["g", "y", "r"].map(t => `<button data-tier="${t}" class="${F.tiers.includes(t) ? "on" : ""}"><i class="tier-dot ${t}"></i>${names[t]}<span>${base.filter(r => rate(r).t === t).length}</span></button>`).join("");
     const l5base = filtered("l5"), lab = { "": "Last 5: any", "5": "Hit 5 of 5", "4+": "Hit 4+ of 5", "3+": "Hit 3+ of 5", "<=2": "Hit 2 or fewer", "<=1": "Hit 1 or fewer", "0": "Hit 0 of 5" };
     $("#l5Sel").innerHTML = Object.keys(L5_OPTS).map(k => `<option value="${k}" ${F.l5 === k ? "selected" : ""}>${lab[k]}${k ? ` (${l5base.filter(r => { const h = l5Hits(r); return h != null && L5_OPTS[k](h); }).length})` : ""}</option>`).join("");
-    if (document.activeElement !== $("#stakeMin")) $("#stakeMin").value = F.stakeMin;
-    if (document.activeElement !== $("#stakeMax")) $("#stakeMax").value = F.stakeMax;
-    const active = F.l5 || F.stakeMin !== "" || F.stakeMax !== "" || F.tiers.join() !== "g,y";
+    if (document.activeElement !== $("#oddsMin")) $("#oddsMin").value = F.oddsMin;
+    if (document.activeElement !== $("#oddsMax")) $("#oddsMax").value = F.oddsMax;
+    const active = F.l5 || F.oddsMin !== "" || F.oddsMax !== "" || F.tiers.join() !== "g,y";
     $("#fltReset").hidden = !active;
   }
   function renderBoard() { state.shownKeys = []; renderBoardInner(); renderSelBar(); }
@@ -3467,8 +3467,8 @@ const App = (() => {
     $("#betCopyBtn").addEventListener("click", async () => { const list = state.betSel.size ? Bets.all().filter(b => state.betSel.has(b.id)) : (state.betShown || []);
       if (await copyBets([...list].sort((a, b) => a.placedAt - b.placedAt))) { state.betSel.clear(); renderBets(); } });
     $("#l5Sel").addEventListener("change", e => { state.flt.l5 = e.target.value; saveFilters(); renderBoard(); });
-    for (const id of ["stakeMin", "stakeMax"]) $("#" + id).addEventListener("input", e => { state.flt[id] = e.target.value.trim(); saveFilters(); renderBoard(); });
-    $("#fltReset").addEventListener("click", () => { state.flt = { tiers: ["g", "y"], l5: "", stakeMin: "", stakeMax: "" }; saveFilters(); renderBoard(); });
+    for (const id of ["oddsMin", "oddsMax"]) $("#" + id).addEventListener("input", e => { state.flt[id] = e.target.value.trim(); saveFilters(); renderBoard(); });
+    $("#fltReset").addEventListener("click", () => { state.flt = { tiers: ["g", "y"], l5: "", oddsMin: "", oddsMax: "" }; saveFilters(); renderBoard(); });
     renderBookPicker();
     $("#bookPickBtn").addEventListener("click", e => { e.stopPropagation(); $("#bookPick").classList.toggle("open"); });
     document.addEventListener("click", e => { if (!e.target.closest("#bookPick")) $("#bookPick").classList.remove("open"); });
