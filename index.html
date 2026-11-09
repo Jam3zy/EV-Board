@@ -1612,7 +1612,8 @@ const Bets = (() => {
   }
   function addManual(f) {
     const id = "B" + sydDate(now()).replace(/-/g, "") + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
-    const b = { id, placedAt: f.placedAt || now(), sport: f.sport, commence: f.commence || f.placedAt || now(), event: f.event || "", home: "", away: "",
+    const ko = f.commence || f.placedAt || now();
+    const b = { id, placedAt: f.placedAt || now(), sport: f.sport, commence: typeof ko === "number" ? new Date(ko).toISOString() : ko, event: f.event || "", home: "", away: "",
       betType: f.betType || "Other", market: f.betType || "Other", marketLabel: f.marketLabel || f.betType || "Other", player: f.player || "", selection: f.selection || "",
       line: f.line === "" || f.line == null ? null : +f.line, book: f.book, odds: +f.odds, stake: +f.stake, commission: commissionFor(f.book),
       modelProb: f.modelProb === "" || f.modelProb == null ? NaN : +f.modelProb, pPush: 0, marketProb: NaN, status: "Pending", notes: f.notes || "", manual: true };
@@ -1797,9 +1798,12 @@ const Bets = (() => {
       if (ex) { update(id, patch); updated++; }
       else if (isFinite(g("Odds")) && isFinite(g("Stake"))) {
         const bookName = String(g("Bookie") ?? ""), book = Object.keys(AU_BOOKS).find(k => AU_BOOKS[k] === bookName) || bookName;
-        const ko = isFinite(g("Kickoff")) ? XLSX.fromSerial(+g("Kickoff")) : now();
-        const b = addManual({ sport: String(g("Sport") || "").toLowerCase() || "other", event: g("Event"), betType: g("Bet type"), marketLabel: g("Market"),
-          player: g("Player / team"), selection: g("Selection"), line: g("Line"), book, odds: +g("Odds"), stake: +g("Stake"), commence: ko - 11 * 3600e3, // Sydney wall clock -> UTC (AEDT; off by 1h in winter, only affects grouping)
+        // spreadsheet times are Sydney wall clock; convert to a real instant
+        const syd = v => { if (!isFinite(v) || v === "") return NaN; const guess = XLSX.fromSerial(+v); const wall = XLSX.fromSerial(XLSX.serial(guess)); return guess - (wall - guess); };
+        const ko = isFinite(syd(g("Kickoff"))) ? syd(g("Kickoff")) : isFinite(syd(g("Date"))) ? syd(g("Date")) + 12 * 3600e3 : now();
+        const placed = isFinite(syd(g("Placed"))) ? syd(g("Placed")) : now();
+        const b = addManual({ placedAt: placed, sport: String(g("Sport") || "").toLowerCase() || "other", event: g("Event"), betType: g("Bet type"), marketLabel: g("Market"),
+          player: g("Player / team"), selection: g("Selection"), line: g("Line"), book, odds: +g("Odds"), stake: +g("Stake"), commence: new Date(ko).toISOString(),
           modelProb: g("Model prob"), notes: patch.notes });
         if (id) b.id = String(id);
         update(b.id, { status, cashOut: patch.cashOut ?? null }); added++;
