@@ -78,7 +78,7 @@ footer{color:var(--mute);font-size:12px;padding:0 24px 30px;max-width:980px}
 <body>
 <div class="top">
   <h1>EV Board <span>· NFL + NBA · AU bookies</span></h1>
-  <span id="mode" class="chip">Live</span><span class="meta" id="lastRun"></span><span class="meta" id="credits"></span>
+  <span id="mode" class="chip">Live</span><span class="meta" id="ver"></span><span class="meta" id="lastRun"></span><span class="meta" id="credits"></span>
   <span class="grow"></span>
   <div class="ctrl">
   <div class="seg" id="fetchSport" title="Which sport to pull odds for. One sport uses fewer API credits.">
@@ -637,8 +637,13 @@ const ESPN = (() => {
       days = []; for (let t = a; t <= b && days.length < 10; t += 864e5) days.push(new Date(t).toISOString().slice(0, 10).replace(/-/g, ""));
     }
     const res = await Promise.all(days.map(d => Net.getJSON(`${SITE}/${SPORTS[sport].espn}/scoreboard?dates=${d}`, { ttl: 5 * 60e3 }).catch(e => ({ __err: e }))));
-    const ok = res.filter(r => !r.__err);
-    if (!ok.length) throw res[0].__err;
+    let ok = res.filter(r => !r.__err);
+    if (!ok.length) { // fallbacks: today's board without a date, then ESPN's alternate host
+      const p = SPORTS[sport].espn;
+      try { ok = [await firstOk([`${SITE}/${p}/scoreboard`, `https://site.web.api.espn.com/apis/site/v2/sports/${p}/scoreboard?dates=${days[days.length - 1]}`,
+                                 `https://site.web.api.espn.com/apis/site/v2/sports/${p}/scoreboard`], { ttl: 5 * 60e3 })]; }
+      catch (e) { throw res[0].__err; }
+    }
     const seen = new Set();
     return ok.flatMap(d => d?.events || []).filter(ev => !seen.has(ev.id) && seen.add(ev.id)).map(ev => {
       const c = ev.competitions?.[0] || {};
@@ -2153,6 +2158,7 @@ const Demo = (() => {
 /* ============================================================================
    APP: UI, run loop, tabs.
    ========================================================================== */
+const VERSION = "v3 (9 Nov, ESPN fix)";
 const App = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -2180,6 +2186,7 @@ const App = (() => {
     if (state.running) return;
     if (!Demo.active && !Settings.get("apiKey")) { switchTab("settings"); flash("Add your The Odds API key first (or turn on Demo)."); return; }
     state.running = true; $("#runBtn").disabled = true; $("#runBtn").textContent = "Running…";
+    log(`EV Board ${VERSION}`);
     const rows = [], matchups = [], injuries = {};
     if (!Demo.active && state.estimate && Net.credits() != null && state.estimate > +Net.credits()) {
       flash(`This refresh may need ~${state.estimate} credits but only ${Net.credits()} are left. Pick one sport, a shorter window or fewer markets.`); }
@@ -2577,7 +2584,7 @@ const App = (() => {
   }
 
   function init() {
-    renderSettings(); bindSettings(); bindBets();
+    renderSettings(); bindSettings(); bindBets(); $("#ver").textContent = VERSION;
     document.querySelectorAll("nav.tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
     $("#runBtn").addEventListener("click", run);
     $("#fetchSport").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return;
