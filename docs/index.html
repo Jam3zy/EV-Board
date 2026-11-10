@@ -39,6 +39,7 @@ td.ev.y{color:#a87a00}td.ev.r{color:var(--bad)}
 .filters{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .seg{display:inline-flex;background:var(--chip);border-radius:8px;padding:3px}.seg button{border:0;background:none;padding:5px 12px;border-radius:6px;color:var(--mute);font-weight:600;cursor:pointer}
 input.selcb{margin:0 6px 0 0;vertical-align:-2px;cursor:pointer}
+.mkset{margin-bottom:12px}.mkhead{display:flex;gap:8px;align-items:center;margin-bottom:4px}.mkgrp{display:grid;grid-template-columns:150px 1fr;gap:8px;margin:4px 0}.mkgrp .chks{display:flex;flex-wrap:wrap;gap:4px 12px}
 .selbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px;padding:8px 12px;background:var(--acc-soft);border-radius:8px}.selbar[hidden]{display:none}th.cb,td.cb{width:26px;padding-right:0}td.cb input,th.cb input{cursor:pointer}
 .seg.multi button i{margin-right:6px}.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}.seg span{margin-left:5px;font-weight:500;font-size:12px;color:var(--mute)}
 label.f{display:inline-flex;gap:6px;align-items:center;color:var(--mute);font-size:12.5px}label.f input[type=number]{width:68px}
@@ -226,8 +227,8 @@ footer{color:var(--mute);font-size:12px;padding:0 24px 30px;max-width:980px}
 </section>
 <section id="tab-settings" hidden>
   <div class="form">
-    <label for="setApiKey">The Odds API key</label><div><input type="password" id="setApiKey" style="width:340px" autocomplete="off"><div class="hint">Stored only in this browser. Region <code>au</code> is used, so one call covers every Australian book. Props cost one credit per market per game.</div></div>
-    <label>Markets to fetch</label><div><div id="setMarkets"></div><div class="hint">Each ticked market costs 1 credit per game per refresh. Untick the ones you don't bet to save credits.</div></div>
+    <label for="setApiKey">The Odds API key</label><div><input type="password" id="setApiKey" style="width:340px" autocomplete="off"><div class="hint">Stored only in this browser. Region <code>au</code> is used, so one call covers every Australian book. Props cost one credit per market (with odds) per game.</div></div>
+    <label>Markets to fetch</label><div><div id="setMarkets"></div><div class="hint">You're only charged for markets that come back with Australian odds: 1 credit per market per game. Markets no AU bookie offers that day cost nothing. Untick groups you don't bet to save credits. Alternate lines and first-scorer markets often add the most cost.</div></div>
     <label>Bookies you can bet at</label><div><div class="chks" id="setBooks"></div><div class="hint">All AU books feed the fair line; only ticked books can be the "best price". Dabble is on paid Odds API plans only.</div></div>
     <label for="setComm">Betfair commission %</label><div><input type="number" id="setComm" step="0.5"><div class="hint">Your rate on winnings; Betfair prices are netted before comparing.</div></div>
     <label for="setMinEdge">Minimum EV %</label><input type="number" id="setMinEdge" step="0.5">
@@ -453,10 +454,27 @@ const BOOK_HOME = {
 const EXCHANGES = ["betfair_ex_au"];
 const SPORTS = {
   nfl: { odds: "americanfootball_nfl", espn: "football/nfl", label: "NFL", horizonDays: 7,
-         markets: ["player_pass_yds", "player_pass_tds", "player_pass_attempts", "player_rush_yds",
-                   "player_rush_attempts", "player_reception_yds", "player_receptions"] },
+         markets: ["player_pass_yds", "player_pass_tds", "player_pass_attempts", "player_pass_completions", "player_pass_interceptions",
+                   "player_pass_longest_completion", "player_rush_yds", "player_rush_attempts", "player_rush_tds", "player_rush_longest",
+                   "player_reception_yds", "player_receptions", "player_reception_tds", "player_reception_longest",
+                   "player_rush_reception_yds", "player_pass_rush_yds", "player_rush_reception_tds", "player_tds_over",
+                   "player_anytime_td", "player_1st_td", "player_last_td",
+                   "player_sacks", "player_solo_tackles", "player_tackles_assists", "player_defensive_interceptions",
+                   "player_field_goals", "player_kicking_points", "player_pats",
+                   "player_pass_yds_alternate", "player_pass_tds_alternate", "player_pass_attempts_alternate", "player_pass_completions_alternate",
+                   "player_rush_yds_alternate", "player_rush_attempts_alternate", "player_reception_yds_alternate", "player_receptions_alternate",
+                   "player_rush_reception_yds_alternate", "player_pass_interceptions_alternate",
+                   "alternate_spreads", "alternate_totals", "team_totals", "alternate_team_totals"] },
   nba: { odds: "basketball_nba", espn: "basketball/nba", label: "NBA", horizonDays: 2,
-         markets: ["player_points", "player_rebounds", "player_assists", "player_threes", "player_points_rebounds_assists"] },
+         markets: ["player_points", "player_rebounds", "player_assists", "player_threes", "player_blocks", "player_steals",
+                   "player_blocks_steals", "player_turnovers", "player_field_goals", "player_frees_made",
+                   "player_points_rebounds_assists", "player_points_rebounds", "player_points_assists", "player_rebounds_assists",
+                   "player_double_double", "player_triple_double", "player_first_basket",
+                   "player_points_alternate", "player_rebounds_alternate", "player_assists_alternate", "player_threes_alternate",
+                   "player_blocks_alternate", "player_steals_alternate", "player_turnovers_alternate",
+                   "player_points_rebounds_assists_alternate", "player_points_rebounds_alternate", "player_points_assists_alternate",
+                   "player_rebounds_assists_alternate",
+                   "alternate_spreads", "alternate_totals", "team_totals", "alternate_team_totals"] },
 };
 
 /* ---------------------------------------------------------------- settings */
@@ -472,9 +490,15 @@ const Settings = (() => {
     lookaheadH: { nfl: 96, nba: 24 },           // only fetch props for games starting within this many hours
     markets: { nfl: [...SPORTS.nfl.markets], nba: [...SPORTS.nba.markets] },
     badMarkets: [],                             // markets The Odds API rejected (422); skipped automatically
+    marketsV: 2,
   };
   let s = { ...defaults };
   try { s = { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch (e) {}
+  // v2 added ~70 markets: switch them on for people who saved the old short list
+  if (!(s.marketsV >= 2)) {
+    s.markets = Object.fromEntries(Object.keys(SPORTS).map(k => [k, [...new Set([...(s.markets?.[k] || []), ...SPORTS[k].markets])]]));
+    s.marketsV = 2; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+  }
   return {
     get: k => s[k], all: () => ({ ...s }), defaults,
     set(k, v) { s[k] = v; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} },
@@ -564,7 +588,8 @@ const OddsAPI = (() => {
     for (const ev of events) {
       if (!ev || !ev.bookmakers) continue;
       for (const bk of ev.bookmakers) for (const mk of bk.markets || []) for (const oc of mk.outcomes || []) {
-        const prop = mk.key.startsWith("player_");
+        // player props carry the player in `description`; team totals carry the team there
+        const prop = mk.key.startsWith("player_") || /team_totals/.test(mk.key);
         rows.push({
           sport, eventId: ev.id, commence: ev.commence_time, home: ev.home_team, away: ev.away_team,
           book: bk.key, market: mk.key, player: prop ? oc.description : null, outcome: oc.name,
@@ -754,10 +779,19 @@ const ESPN = (() => {
 
   // ---- athlete game logs -------------------------------------------------------
   const NBA_FIELDS = { min: ["minutes", "MIN"], pts: ["points", "PTS"], reb: ["totalRebounds", "rebounds", "REB"],
-                       ast: ["assists", "AST"], fg3: ["threePointFieldGoalsMade-threePointFieldGoalsAttempted", "3PT"] };
+                       ast: ["assists", "AST"], fg3: ["threePointFieldGoalsMade-threePointFieldGoalsAttempted", "3PT"],
+                       blk: ["blocks", "BLK"], stl: ["steals", "STL"], tov: ["turnovers", "TO"],
+                       fgm: ["fieldGoalsMade-fieldGoalsAttempted", "FG"], ftm: ["freeThrowsMade-freeThrowsAttempted", "FT"] };
+  // the same ESPN name can mean different things by position ("interceptions" thrown by a QB / made by a DB):
+  // each player only has one kind, and the market decides which applies
   const NFL_FIELDS = { cmp: ["completions"], att: ["passingAttempts"], passYds: ["passingYards"], passTd: ["passingTouchdowns"],
-                       car: ["rushingAttempts"], rushYds: ["rushingYards"], rec: ["receptions"], tgt: ["receivingTargets"],
-                       recYds: ["receivingYards"] };
+                       int: ["interceptions"], longPass: ["longPassing"],
+                       car: ["rushingAttempts"], rushYds: ["rushingYards"], rushTd: ["rushingTouchdowns"], longRush: ["longRushing"],
+                       rec: ["receptions"], tgt: ["receivingTargets"], recYds: ["receivingYards"], recTd: ["receivingTouchdowns"],
+                       longRec: ["longReception"], tackles: ["totalTackles"], soloTk: ["soloTackles"], sacks: ["sacks"],
+                       fgm: ["fieldGoalsMade-fieldGoalsAttempted", "fieldGoalsMade/fieldGoalsAttempted", "fieldGoalsMade"],
+                       xpm: ["extraPointsMade-extraPointsAttempted", "extraPointsMade/extraPointsAttempted", "extraPointsMade"],
+                       kpts: ["totalKickingPoints"] };
   const num = v => { if (v == null) return NaN; const s = String(v); if (s.includes("-") && !s.startsWith("-")) return parseFloat(s.split("-")[0]); const x = parseFloat(s.replace(/,/g, "")); return x; };
 
   function parseGamelog(d, sport) {
@@ -784,7 +818,10 @@ const ESPN = (() => {
       }
     }
     const games = [...seen.values()].filter(g => g.date).sort((a, b) => a.date.localeCompare(b.date));
-    return { games, fieldsFound: Object.values(idx).filter(i => i >= 0).length, fieldsWanted: Object.keys(idx).length };
+    // NFL players only have the categories for their position, so only the NBA basics are "required"
+    const core = sport === "nba" ? ["min", "pts", "reb", "ast", "fg3"] : Object.keys(idx);
+    const found = core.filter(k => idx[k] >= 0).length;
+    return { games, fieldsFound: sport === "nba" ? found : (found ? 1 : 0), fieldsWanted: sport === "nba" ? core.length : 1 };
   }
 
   async function gamelog(sport, athleteId, season) {
@@ -797,10 +834,18 @@ const ESPN = (() => {
   const BOX_KEYS = {
     nba: { min: ["minutes", "MIN"], pts: ["points", "PTS"], reb: ["rebounds", "totalRebounds", "REB"], ast: ["assists", "AST"],
            fg3: ["threePointFieldGoalsMade-threePointFieldGoalsAttempted", "3PT"], fga: ["fieldGoalsMade-fieldGoalsAttempted", "FG"],
-           fta: ["freeThrowsMade-freeThrowsAttempted", "FT"], tov: ["turnovers", "TO"] },
-    nfl: { cmpAtt: ["completions/passingAttempts", "C/ATT"], passYds: ["passingYards"], passTd: ["passingTouchdowns"], car: ["rushingAttempts"],
-           rushYds: ["rushingYards"], rec: ["receptions"], tgt: ["receivingTargets"], recYds: ["receivingYards"] },
+           fta: ["freeThrowsMade-freeThrowsAttempted", "FT"], tov: ["turnovers", "TO"], blk: ["blocks", "BLK"], stl: ["steals", "STL"],
+           fgm: ["fieldGoalsMade-fieldGoalsAttempted", "FG"], ftm: ["freeThrowsMade-freeThrowsAttempted", "FT"] },
+    nfl: { cmpAtt: ["completions/passingAttempts", "C/ATT"], passYds: ["passingYards"], passTd: ["passingTouchdowns"], int: ["interceptions"],
+           car: ["rushingAttempts"], rushYds: ["rushingYards"], rushTd: ["rushingTouchdowns"], longRush: ["longRushing"],
+           rec: ["receptions"], tgt: ["receivingTargets"], recYds: ["receivingYards"], recTd: ["receivingTouchdowns"], longRec: ["longReception"],
+           tackles: ["totalTackles"], soloTk: ["soloTackles"], sacks: ["sacks"], defInt: ["interceptions"],
+           fgmAtt: ["fieldGoalsMade/fieldGoalsAttempted"], xpmAtt: ["extraPointsMade/extraPointsAttempted"], kpts: ["totalKickingPoints"] },
   };
+  // NFL box-score category each stat must come from (labels like "YDS" / "INT" repeat across categories)
+  const NFL_CAT = { cmpAtt: "passing", passYds: "passing", passTd: "passing", int: "passing", car: "rushing", rushYds: "rushing", rushTd: "rushing",
+    longRush: "rushing", rec: "receiving", tgt: "receiving", recYds: "receiving", recTd: "receiving", longRec: "receiving",
+    tackles: "defensive", soloTk: "defensive", sacks: "defensive", defInt: "interceptions", fgmAtt: "kicking", xpmAtt: "kicking", kpts: "kicking" };
   function parseBoxscore(d, sport) {
     const comp = d?.header?.competitions?.[0] || {};
     const done = !!(comp.status?.type?.completed || comp.status?.type?.state === "post");
@@ -817,12 +862,12 @@ const ESPN = (() => {
           for (const [k, cands] of Object.entries(BOX_KEYS[sport])) {
             let i = -1; for (const c of cands) { i = keys.indexOf(c); if (i < 0) i = labels.indexOf(c); if (i >= 0) break; }
             if (i < 0) continue;
-            // NFL labels repeat across categories ("YDS"); keys are unique, but guard by category name too
-            if (sport === "nfl" && ((k.startsWith("pass") || k === "cmpAtt") && cn && cn !== "passing")) continue;
-            if (sport === "nfl" && ((k === "car" || k === "rushYds") && cn && cn !== "rushing")) continue;
-            if (sport === "nfl" && (["rec", "tgt", "recYds"].includes(k) && cn && cn !== "receiving")) continue;
+            if (sport === "nfl" && cn && NFL_CAT[k] && cn !== NFL_CAT[k]) continue;
             const raw = String(a.stats[i] ?? "");
             if (k === "cmpAtt") { const [c, at] = raw.split("/"); L.stats.cmp = +c || 0; L.stats.att = +at || 0; }
+            else if (k === "fgmAtt") L.stats.fgm = parseFloat(raw.split("/")[0]) || 0;
+            else if (k === "xpmAtt") L.stats.xpm = parseFloat(raw.split("/")[0]) || 0;
+            else if (k === "defInt") L.stats.int = num(raw) || 0; // a defender's interceptions (a QB's come from the passing category)
             else if (k === "fga" || k === "fta") L.stats[k] = parseFloat(raw.split("-")[1]) || 0; // "8-15" -> attempts
             else L.stats[k] = num(raw) || 0;
           }
@@ -958,23 +1003,82 @@ if (typeof module !== "undefined") module.exports = { ESPN, Names, OddsAPI, SPOR
 /* ============================================================================
    MODEL: sport-specific projections on a shared distribution core + the pipeline.
    ========================================================================== */
+// Market specs. Alternate ("X+") markets reuse their base spec automatically (see specFor).
+// model: nba = minutes x per-minute rate · vol = NFL volume x efficiency · pg = per-game average ·
+//        combo = sum of other markets · dd/td3 = double/triple double · first = first/last scorer · game = line/total
+// kind:  ou = Over/Under (default) · yn = Yes/No · first = one runner per player · game = team markets
 const MARKETS = {
-  // NBA: minutes x per-minute rate. `scoring` = how strongly the implied team total moves the stat
-  player_points: { sport: "nba", label: "Points", stats: ["pts"], family: "normal", cv: 0.32, floor: 2.5, scoring: 0.7, usage: 1 },
-  player_rebounds: { sport: "nba", label: "Rebounds", stats: ["reb"], family: "negbin", cv: 0.40, floor: 1.0, scoring: 0.3, usage: 0.3 },
-  player_assists: { sport: "nba", label: "Assists", stats: ["ast"], family: "negbin", cv: 0.45, floor: 1.0, scoring: 0.4, usage: 0.5 },
-  player_threes: { sport: "nba", label: "3PM", stats: ["fg3"], family: "negbin", cv: 0.65, floor: 0.6, scoring: 0.6, usage: 0.8 },
-  player_points_rebounds_assists: { sport: "nba", label: "PRA", stats: ["pts", "reb", "ast"], family: "normal", cv: 0.27, floor: 3.5, scoring: 0.55, usage: 0.7 },
-  // NFL: volume x efficiency
-  player_pass_yds: { sport: "nfl", label: "Pass Yds", vol: "att", eff: "passYds", k: 150, prior: 6.9, family: "normal", cv: 0.25, floor: 25, pass: true },
-  player_pass_attempts: { sport: "nfl", label: "Pass Att", vol: "att", family: "negbin", cv: 0.18, floor: 3, pass: true },
-  player_pass_tds: { sport: "nfl", label: "Pass TDs", vol: "att", eff: "passTd", k: 300, prior: 0.043, family: "poisson", cv: 0.7, floor: 0.3, pass: true, tdScoring: true },
-  player_rush_yds: { sport: "nfl", label: "Rush Yds", vol: "car", eff: "rushYds", k: 60, prior: 4.3, family: "normal", cv: 0.55, floor: 4, pass: false },
-  player_rush_attempts: { sport: "nfl", label: "Rush Att", vol: "car", family: "negbin", cv: 0.35, floor: 1, pass: false },
-  player_reception_yds: { sport: "nfl", label: "Rec Yds", vol: "tgt", eff: "recYds", k: 40, prior: 7.6, priorRB: 6.0, family: "normal", cv: 0.7, floor: 4, pass: true },
-  player_receptions: { sport: "nfl", label: "Receptions", vol: "tgt", eff: "rec", k: 30, prior: 0.65, priorRB: 0.78, family: "negbin", cv: 0.45, floor: 0.8, pass: true },
-  h2h: { label: "Moneyline" }, spreads: { label: "Line" }, totals: { label: "Total" },
+  // ---- NBA (per-minute). `scoring` = how strongly the implied team total moves the stat
+  player_points: { sport: "nba", label: "Points", stats: ["pts"], model: "nba", family: "normal", cv: 0.32, floor: 2.5, scoring: 0.7, usage: 1 },
+  player_rebounds: { sport: "nba", label: "Rebounds", stats: ["reb"], model: "nba", family: "negbin", cv: 0.40, floor: 1.0, scoring: 0.3, usage: 0.3 },
+  player_assists: { sport: "nba", label: "Assists", stats: ["ast"], model: "nba", family: "negbin", cv: 0.45, floor: 1.0, scoring: 0.4, usage: 0.5,
+    nfl: { sport: "nfl", label: "Tackle Assists", stats: ["astTk"], model: "pg", family: "negbin", cv: 0.7, floor: 0.6 } },
+  player_threes: { sport: "nba", label: "3PM", stats: ["fg3"], model: "nba", family: "negbin", cv: 0.65, floor: 0.6, scoring: 0.6, usage: 0.8 },
+  player_blocks: { sport: "nba", label: "Blocks", stats: ["blk"], model: "nba", family: "negbin", cv: 0.8, floor: 0.5, scoring: 0.1, usage: 0.1 },
+  player_steals: { sport: "nba", label: "Steals", stats: ["stl"], model: "nba", family: "negbin", cv: 0.75, floor: 0.5, scoring: 0.1, usage: 0.1 },
+  player_blocks_steals: { sport: "nba", label: "Blocks + Steals", stats: ["blk", "stl"], model: "nba", family: "negbin", cv: 0.6, floor: 0.7, scoring: 0.1, usage: 0.1 },
+  player_turnovers: { sport: "nba", label: "Turnovers", stats: ["tov"], model: "nba", family: "negbin", cv: 0.55, floor: 0.6, scoring: 0.3, usage: 0.7 },
+  player_field_goals: { sport: "nba", label: "Field Goals Made", stats: ["fgm"], model: "nba", family: "negbin", cv: 0.38, floor: 1.0, scoring: 0.6, usage: 0.9,
+    nfl: { sport: "nfl", label: "Field Goals (K)", stats: ["fgm"], model: "pg", family: "negbin", cv: 0.6, floor: 0.6, scoring: 1, k: 6 } },
+  player_frees_made: { sport: "nba", label: "Free Throws Made", stats: ["ftm"], model: "nba", family: "negbin", cv: 0.6, floor: 0.8, scoring: 0.5, usage: 0.8 },
+  player_points_rebounds_assists: { sport: "nba", label: "PRA", stats: ["pts", "reb", "ast"], model: "nba", family: "normal", cv: 0.27, floor: 3.5, scoring: 0.55, usage: 0.7 },
+  player_points_rebounds: { sport: "nba", label: "Pts + Reb", stats: ["pts", "reb"], model: "nba", family: "normal", cv: 0.29, floor: 3, scoring: 0.6, usage: 0.8 },
+  player_points_assists: { sport: "nba", label: "Pts + Ast", stats: ["pts", "ast"], model: "nba", family: "normal", cv: 0.29, floor: 3, scoring: 0.65, usage: 0.85 },
+  player_rebounds_assists: { sport: "nba", label: "Reb + Ast", stats: ["reb", "ast"], model: "nba", family: "negbin", cv: 0.35, floor: 1.5, scoring: 0.35, usage: 0.4 },
+  player_double_double: { sport: "nba", label: "Double Double", kind: "yn", model: "dd", value: g => ((g.stats.pts >= 10) + (g.stats.reb >= 10) + (g.stats.ast >= 10) + (g.stats.blk >= 10) + (g.stats.stl >= 10) >= 2 ? 1 : 0) },
+  player_triple_double: { sport: "nba", label: "Triple Double", kind: "yn", model: "td3", value: g => ((g.stats.pts >= 10) + (g.stats.reb >= 10) + (g.stats.ast >= 10) + (g.stats.blk >= 10) + (g.stats.stl >= 10) >= 3 ? 1 : 0) },
+  player_first_basket: { sport: "nba", label: "First Basket", kind: "first", model: "first", noGrade: true },
+  // ---- NFL: volume x efficiency
+  player_pass_yds: { sport: "nfl", label: "Pass Yds", stats: ["passYds"], model: "vol", vol: "att", eff: "passYds", k: 150, prior: 6.9, family: "normal", cv: 0.25, floor: 25, pass: true },
+  player_pass_attempts: { sport: "nfl", label: "Pass Att", stats: ["att"], model: "vol", vol: "att", family: "negbin", cv: 0.18, floor: 3, pass: true },
+  player_pass_completions: { sport: "nfl", label: "Completions", stats: ["cmp"], model: "vol", vol: "att", eff: "cmp", k: 200, prior: 0.64, family: "normal", cv: 0.2, floor: 2.5, pass: true },
+  player_pass_tds: { sport: "nfl", label: "Pass TDs", stats: ["passTd"], model: "vol", vol: "att", eff: "passTd", k: 300, prior: 0.043, family: "poisson", cv: 0.7, floor: 0.3, pass: true, tdScoring: true },
+  player_pass_interceptions: { sport: "nfl", label: "Interceptions Thrown", stats: ["int"], model: "vol", vol: "att", eff: "int", k: 400, prior: 0.024, family: "poisson", cv: 0.9, floor: 0.3, pass: true },
+  player_rush_yds: { sport: "nfl", label: "Rush Yds", stats: ["rushYds"], model: "vol", vol: "car", eff: "rushYds", k: 60, prior: 4.3, family: "normal", cv: 0.55, floor: 4, pass: false },
+  player_rush_attempts: { sport: "nfl", label: "Rush Att", stats: ["car"], model: "vol", vol: "car", family: "negbin", cv: 0.35, floor: 1, pass: false },
+  player_rush_tds: { sport: "nfl", label: "Rush TDs", stats: ["rushTd"], model: "vol", vol: "car", eff: "rushTd", k: 80, prior: 0.025, family: "poisson", cv: 1, floor: 0.25, pass: false, tdScoring: true },
+  player_reception_yds: { sport: "nfl", label: "Rec Yds", stats: ["recYds"], model: "vol", vol: "tgt", eff: "recYds", k: 40, prior: 7.6, priorRB: 6.0, family: "normal", cv: 0.7, floor: 4, pass: true },
+  player_receptions: { sport: "nfl", label: "Receptions", stats: ["rec"], model: "vol", vol: "tgt", eff: "rec", k: 30, prior: 0.65, priorRB: 0.78, family: "negbin", cv: 0.45, floor: 0.8, pass: true },
+  player_reception_tds: { sport: "nfl", label: "Rec TDs", stats: ["recTd"], model: "vol", vol: "tgt", eff: "recTd", k: 60, prior: 0.045, priorRB: 0.03, family: "poisson", cv: 1, floor: 0.25, pass: true, tdScoring: true },
+  // ---- NFL combos (sum of the parts' projections)
+  player_rush_reception_yds: { sport: "nfl", label: "Rush + Rec Yds", stats: ["rushYds", "recYds"], model: "combo", parts: ["player_rush_yds", "player_reception_yds"], family: "normal" },
+  player_pass_rush_yds: { sport: "nfl", label: "Pass + Rush Yds", stats: ["passYds", "rushYds"], model: "combo", parts: ["player_pass_yds", "player_rush_yds"], family: "normal" },
+  player_rush_reception_tds: { sport: "nfl", label: "Rush + Rec TDs", stats: ["rushTd", "recTd"], model: "combo", parts: ["player_rush_tds", "player_reception_tds"], family: "poisson" },
+  player_tds_over: { sport: "nfl", label: "Touchdowns", stats: ["rushTd", "recTd"], model: "combo", parts: ["player_rush_tds", "player_reception_tds"], family: "poisson" },
+  player_anytime_td: { sport: "nfl", label: "Anytime TD", stats: ["rushTd", "recTd"], kind: "yn", model: "combo", parts: ["player_rush_tds", "player_reception_tds"], family: "poisson" },
+  player_1st_td: { sport: "nfl", label: "First TD", kind: "first", model: "first", noGrade: true },
+  player_last_td: { sport: "nfl", label: "Last TD", kind: "first", model: "first", noGrade: true },
+  // ---- NFL per-game: longest plays, defence, kicking
+  player_pass_longest_completion: { sport: "nfl", label: "Longest Completion", stats: ["longPass"], model: "pg", family: "normal", cv: 0.35, floor: 6 },
+  player_rush_longest: { sport: "nfl", label: "Longest Rush", stats: ["longRush"], model: "pg", family: "normal", cv: 0.6, floor: 3 },
+  player_reception_longest: { sport: "nfl", label: "Longest Reception", stats: ["longRec"], model: "pg", family: "normal", cv: 0.6, floor: 4 },
+  player_sacks: { sport: "nfl", label: "Sacks", stats: ["sacks"], model: "pg", family: "poisson", cv: 1.2, floor: 0.3 },
+  player_solo_tackles: { sport: "nfl", label: "Solo Tackles", stats: ["soloTk"], model: "pg", family: "negbin", cv: 0.5, floor: 1 },
+  player_tackles_assists: { sport: "nfl", label: "Tackles + Ast", stats: ["tackles"], model: "pg", family: "negbin", cv: 0.45, floor: 1.2 },
+  player_defensive_interceptions: { sport: "nfl", label: "Interceptions (D)", stats: ["int"], model: "pg", family: "poisson", cv: 1.5, floor: 0.2 },
+  player_kicking_points: { sport: "nfl", label: "Kicking Points", stats: ["kpts"], model: "pg", family: "normal", cv: 0.45, floor: 2.5, scoring: 1, k: 6 },
+  player_pats: { sport: "nfl", label: "Extra Points", stats: ["xpm"], model: "pg", family: "negbin", cv: 0.55, floor: 0.8, scoring: 1, k: 6 },
+  // ---- game markets
+  h2h: { label: "Moneyline", kind: "game" },
+  spreads: { label: "Line", kind: "game", model: "game" }, alternate_spreads: { label: "Alt Line", kind: "game", model: "game", base: "spreads" },
+  totals: { label: "Total", kind: "game", model: "game" }, alternate_totals: { label: "Alt Total", kind: "game", model: "game", base: "totals" },
+  team_totals: { label: "Team Total", kind: "game", model: "game" }, alternate_team_totals: { label: "Alt Team Total", kind: "game", model: "game", base: "team_totals" },
 };
+// spec for a market in a sport (handles keys shared by both sports and "_alternate" markets)
+function specFor(sport, market) {
+  let m = MARKETS[market];
+  if (!m && /_alternate$/.test(market)) {
+    const base = market.replace(/_alternate$/, ""), b = specFor(sport, base);
+    if (b) return { ...b, label: "Alt " + b.label, alt: base };
+    return null;
+  }
+  if (!m) return null;
+  if (sport && m[sport] && m.sport !== sport) m = { ...m, ...m[sport] };
+  return m;
+}
+const marketLabel = (market, sport) => specFor(sport, market)?.label || specFor(sport === "nfl" ? "nba" : "nfl", market)?.label || market;
+const isGameMarket = market => specFor(null, market)?.kind === "game";
+const betTypeOf = market => market === "h2h" ? "Moneyline" : /spreads/.test(market) ? "Line" : /team_totals/.test(market) ? "Team total" : /totals/.test(market) ? "Total" : "Player prop";
 
 const Params = {
   nba: { minHalflife: 3, minK: 4, recentGames: 8, rateK: 300, b2bMin: 0.96, b2bRate: 0.98, oppB2b: 1.02, rested: 1.01,
@@ -1024,8 +1128,8 @@ const Model = (() => {
     teamIds.forEach((tid, i) => { const bs = Array.isArray(res[i]) ? res[i] : []; byTeam[tid] = bs; bs.forEach(b => boxes.set(b.eventId, b)); });
     if (!boxes.size) return null;
     if (sport === "nba") {
-      const keys = ["pts", "reb", "ast", "fg3"], lg = {}, allowed = {}, pace = {};
-      const add = (o, pos, L) => { const x = (o[pos] ||= { min: 0, pts: 0, reb: 0, ast: 0, fg3: 0 }); x.min += L.stats.min || 0; keys.forEach(k => (x[k] += L.stats[k] || 0)); };
+      const keys = ["pts", "reb", "ast", "fg3", "blk", "stl", "tov", "fgm", "ftm"], lg = {}, allowed = {}, pace = {};
+      const add = (o, pos, L) => { const x = (o[pos] ||= Object.fromEntries([["min", 0], ...keys.map(k => [k, 0])])); x.min += L.stats.min || 0; keys.forEach(k => (x[k] += L.stats[k] || 0)); };
       for (const b of boxes.values()) for (const L of Object.values(b.lines)) if (L.stats.min > 0) add(lg, posBucket(sport, L.position), L);
       for (const tid of teamIds) {
         const a = (allowed[tid] = {}), poss = [];
@@ -1069,7 +1173,8 @@ const Model = (() => {
     if (!def || def.sport !== "nba" || !def.pace[oppId] || !isFinite(def.pace[oppId].v) || !isFinite(def.lgPace)) return 1;
     return C.clip(C.shrink(def.pace[oppId].v / def.lgPace, def.pace[oppId].n, 1, 5), 0.95, 1.05);
   }
-  const NFL_DEF_KEY = { player_pass_yds: "passYds", player_pass_tds: "passYds", player_reception_yds: "recYds", player_receptions: "rec", player_rush_yds: "rushYds" };
+  const NFL_DEF_KEY = { player_pass_yds: "passYds", player_pass_tds: "passYds", player_pass_completions: "rec", player_reception_yds: "recYds",
+    player_receptions: "rec", player_reception_tds: "recYds", player_rush_yds: "rushYds", player_rush_tds: "rushYds" };
   function nflDefense(def, oppId, market) {
     const k = NFL_DEF_KEY[market];
     if (!def || def.sport !== "nfl" || !k || !def.allowed[oppId]?.n || !isFinite(def.lg[k]) || !def.lg[k]) return null;
@@ -1079,7 +1184,7 @@ const Model = (() => {
 
   /* ---------------------------------------------------------------- NBA */
   function projectNBA(p, market, ctx) {
-    const P = Params.nba, spec = MARKETS[market];
+    const P = Params.nba, spec = specFor("nba", market);
     const cur = p.games, prev = p.prevGames || [];
     if (cur.length < P.minGames && prev.length < 10) return null;
     const mins = cur.map(g => g.stats.min), pmins = prev.map(g => g.stats.min);
@@ -1135,7 +1240,7 @@ const Model = (() => {
 
   /* ---------------------------------------------------------------- NFL */
   function projectNFL(p, market, ctx) {
-    const P = Params.nfl, spec = MARKETS[market];
+    const P = Params.nfl, spec = specFor("nfl", market);
     const cur = p.games, prev = p.prevGames || [];
     if (cur.length < P.minGames && prev.length < 4) return null;
     const notes = [];
@@ -1184,19 +1289,123 @@ const Model = (() => {
     const vU = { att: "att", tgt: "tgt", car: "car" }[spec.vol];
     const adj = [
       { k: "Projected volume", v: `${vol.toFixed(1)} ${vU}`, note: `season avg ${C.mean(v(cur)).toFixed(1)}` },
-      spec.eff ? { k: "Efficiency", v: `${eff.toFixed(market === "player_receptions" ? 2 : 1)} per ${vU}` } : null,
+      spec.eff ? { k: "Efficiency", v: `${eff.toFixed(eff < 1 ? 3 : 1)} per ${vU}` } : null,
       scriptAdj ? { k: "Game script", f: 1 + scriptAdj, note: `${spec.pass ? "pass" : "run"} volume from the line` } : null,
       scMult !== 1 ? { k: scInfo?.implied ? "Implied team total" : "Opp points allowed", f: scMult, note: scInfo?.implied ? `${scInfo.teamPts.toFixed(1)} pts vs ${scInfo.ppg.toFixed(1)} avg` : "" } : null,
       nd ? { k: "Opp yards allowed", f: defMult, note: `${nd.perGame.toFixed(0)} ${nd.key.replace("Yds", " yds").replace("rec", "rec")} /g vs ${nd.league.toFixed(0)} league, last ${nd.games}` } : null,
       wMult !== 1 ? { k: "Weather", f: wMult } : null,
     ].filter(Boolean);
-    const key = spec.eff && !["player_pass_tds"].includes(market) ? spec.eff : spec.vol;
-    const statKey = market === "player_pass_tds" ? "passTd" : key;
-    const hist = [...prev.slice(-8), ...cur].map(g => g.stats[statKey]);
+    const hist = [...prev.slice(-8), ...cur].map(g => statOf(g, spec.stats));
     // predictive SD = game-to-game noise widened for uncertainty in the estimated mean (few NFL games)
     const sd = C.blendedSd(C.stdev(hist), hist.length, mu, spec.cv, spec.floor) * Math.sqrt(1 + 1.5 / Math.max(cur.length, 1));
     return { mean: mu, sd, family: spec.family === "poisson" ? "negbin" : spec.family, notes, adj,
              f: { vol, eff, games: cur.length } };
+  }
+
+  /* ---------------------------------------------------------------- per-game average (longest plays, defence, kicking) */
+  function projectPG(sport, p, market, ctx) {
+    const spec = specFor(sport, market), cur = p.games, prev = p.prevGames || [];
+    const val = g => statOf(g, spec.stats), cv = cur.map(val).filter(isFinite), pv = prev.map(val).filter(isFinite);
+    if (cv.length < 2 && pv.length < 4) return null;
+    const base = pv.length >= 4 ? C.mean(pv) : C.mean(cv);
+    let mu = cv.length ? C.shrink(C.ewm(cv, 4), cv.length, base, spec.k || 4) : base;
+    if (!isFinite(mu)) return null;
+    const notes = [], adj = [{ k: "Per-game average", v: mu.toFixed(1), note: `season ${C.mean(cv).toFixed(1)} over ${cv.length} games` }];
+    if (spec.scoring) { const sc = scoring(ctx, p.side), f = 1 + spec.scoring * (C.clip(sc.f, 0.85, 1.15) - 1); mu *= f;
+      adj.push({ k: sc.implied ? "Implied team total" : "Opp points allowed", f, note: sc.implied ? `${sc.teamPts.toFixed(1)} pts vs ${sc.ppg.toFixed(1)} avg` : "" }); }
+    if (p.status === "QUESTIONABLE") { mu *= 0.95; notes.push("Questionable"); }
+    const hist = [...pv.slice(-10), ...cv];
+    const sd = C.blendedSd(C.stdev(hist), hist.length, mu, spec.cv, spec.floor) * Math.sqrt(1 + 1.5 / Math.max(cv.length, 1));
+    return { mean: mu, sd, family: spec.family === "poisson" ? "negbin" : spec.family, notes, adj, f: { games: cv.length } };
+  }
+  // one entry point for every player market
+  function project(sport, p, market, ctx) {
+    const spec = specFor(sport, market); if (!spec) return null;
+    if (spec.alt) return project(sport, p, spec.alt, ctx);
+    if (spec.model === "nba") return sport === "nba" ? projectNBA(p, market, ctx) : null;
+    if (spec.model === "vol") return projectNFL(p, market, ctx);
+    if (spec.model === "pg") return projectPG(sport, p, market, ctx);
+    if (spec.model === "combo") {
+      const parts = spec.parts.map(m => project(sport, p, m, ctx)).filter(x => x && isFinite(x.mean));
+      if (!parts.length) return null;
+      const mean = C.sum(parts.map(x => x.mean)), sd = Math.sqrt(C.sum(parts.map(x => x.sd ** 2)));
+      return { mean, sd, family: spec.family === "poisson" ? "negbin" : spec.family, notes: [...new Set(parts.flatMap(x => x.notes))],
+        adj: [{ k: "Sum of", v: spec.parts.map(m => specFor(sport, m).label).join(" + "), note: parts.map(x => x.mean.toFixed(1)).join(" + ") }, ...parts[0].adj.slice(1)] };
+    }
+    if (spec.model === "dd" || spec.model === "td3") {
+      // P(10+) in each category, combined assuming independence given minutes
+      const cats = ["player_points", "player_rebounds", "player_assists"].map(m => project(sport, p, m, ctx));
+      if (cats.some(x => !x)) return null;
+      const q = cats.map(x => Core.probOverUnder(9.5, x.mean, x.sd, x.family)[0]);
+      const pYes = spec.model === "dd" ? q[0] * q[1] + q[0] * q[2] + q[1] * q[2] - 2 * q[0] * q[1] * q[2] : q[0] * q[1] * q[2];
+      return { pYes, mean: pYes, sd: NaN, notes: cats[0].notes,
+        adj: [{ k: "Chance of 10+", v: `pts ${(q[0] * 100).toFixed(0)}% · reb ${(q[1] * 100).toFixed(0)}% · ast ${(q[2] * 100).toFixed(0)}%`,
+          note: `projected ${cats.map(x => x.mean.toFixed(1)).join(" / ")}` }, ...cats[0].adj.slice(0, 1)] };
+    }
+    return null;
+  }
+  // First / last touchdown and first basket: the player's share of the scoring, rough by nature
+  function firstScorer(sport, market, p, c) {
+    if (!c._first) c._first = {};
+    const lam = c._first.lam || (c._first.lam = {});
+    const pl = id => ({ ...p, games: (c._logs?.[id]?.cur || []).filter(g => Date.parse(g.date) < Date.parse(c.event.commence) - 2 * 3600e3), prevGames: c._logs?.[id]?.prev || [] });
+    if (sport === "nfl") {
+      const pr = project("nfl", pl(p.athleteId), "player_anytime_td", c); if (!pr) return null;
+      const L = isFinite(c.total) ? c.total * 0.105 : 4.8; // expected touchdowns in the game
+      const pYes = Math.min(pr.mean / L, 0.6) * (1 - Math.exp(-L));
+      return { pYes, mean: pYes, sd: NaN, notes: ["rough model"], adj: [{ k: "Expected TDs", v: `${pr.mean.toFixed(2)} of ${L.toFixed(1)} in the game`, note: "share of the game's touchdowns" }] };
+    }
+    // NBA first basket: tip-off ~ coin flip, then the player's share of his team's points among the listed starters
+    const team = c.quotes.filter(q => q.market === market).map(q => q.player);
+    const sameSide = [...new Set(team)].map(n => c._players?.find(x => x.name === n && x.side === p.side)).filter(Boolean);
+    const ptsOf = x => { if (lam[x.athleteId] == null) { const r = project("nba", pl(x.athleteId), "player_points", c); lam[x.athleteId] = r ? r.mean : NaN; } return lam[x.athleteId]; };
+    const mine = ptsOf(p), tot = C.sum(sameSide.map(ptsOf).filter(isFinite));
+    if (!isFinite(mine) || !(tot > 0)) return null;
+    const pYes = 0.5 * 0.94 * mine / tot; // 6% for players not listed
+    return { pYes, mean: pYes, sd: NaN, notes: ["rough model"], adj: [{ k: "Share of starters' points", v: `${(mine / tot * 100).toFixed(0)}%`, note: "x 50% for the tip-off" }] };
+  }
+  // probability that this outcome wins (and pushes) given a projection
+  function outcomeProb(spec, pr, proj) {
+    const yes = /^(yes|over)$/i.test(pr.outcome);
+    if (proj.pYes != null) return [yes ? proj.pYes : 1 - proj.pYes, 0];
+    const line = spec.kind === "yn" ? 0.5 : pr.line;
+    if (line == null) return [NaN, 0];
+    const [po, pu, pp] = Core.probOverUnder(line, proj.mean, proj.sd, proj.family);
+    return [yes ? po : pu, pp];
+  }
+  // integer-valued scores ~ Normal(mu, sd): [P(over), P(under), P(push)] for line t
+  function discreteOU(t, mu, sd) {
+    const F = x => Core.normCdf(x, mu, sd);
+    if (Math.abs(t - Math.round(t)) < 1e-9) return [1 - F(t + 0.5), F(t - 0.5), F(t + 0.5) - F(t - 0.5)];
+    return [1 - F(t), F(t), 0];
+  }
+  // one-sided prices (alternate "X+" lines, Yes-only markets): no opposite side to de-vig against
+  function fillOneSided(prs, { marketMean, mkt, holdDefault = 0.07 }) {
+    const holds = prs.map(p => p.hold).filter(isFinite);
+    const hold = holds.length ? Core.median(holds) : holdDefault;
+    for (const pr of prs) {
+      if (pr.nBooks >= 1 && isFinite(pr.marketProb)) continue;
+      const nQuoting = new Set(pr.allPrices.map(x => x.book)).size;
+      if (marketMean && pr.line != null) { // consistent with the de-vigged main line
+        const [po, pu, pp] = Core.probOverUnder(pr.line, marketMean.mean, marketMean.sd, marketMean.family);
+        pr.marketProb = (/over|yes/i.test(pr.outcome) ? po : pu) / (1 - pp); pr.est = "main";
+        pr.nBooks = Math.max(marketMean.nBooks, 1);
+      } else {
+        pr.marketProb = Core.median(pr.allPrices.map(x => 1 / x.price / (1 + hold))); pr.est = "hold";
+        pr.nBooks = nQuoting;
+      }
+      pr.oneSided = true; mkt && (pr.oneSidedHold = hold);
+    }
+    return prs;
+  }
+  // market-implied mean from the main line's de-vigged Over probability, keeping the model's spread
+  function impliedMean(prs, proj) {
+    const main = prs.filter(p => p.line != null && /over/i.test(p.outcome) && p.nBooks >= 2 && isFinite(p.marketProb)).sort((a, b) => b.nBooks - a.nBooks)[0];
+    if (!main || !isFinite(proj?.mean) || !isFinite(proj?.sd)) return null;
+    const pOver = m => { const [po, , pp] = Core.probOverUnder(main.line, m, proj.sd, proj.family); return po / (1 - pp); };
+    let lo = Math.max(0.01, main.line - 6 * proj.sd), hi = main.line + 6 * proj.sd;
+    for (let i = 0; i < 50; i++) { const mid = (lo + hi) / 2; if (pOver(mid) < main.marketProb) lo = mid; else hi = mid; }
+    return { mean: (lo + hi) / 2, sd: proj.sd, family: proj.family, nBooks: main.nBooks };
   }
 
   /* ---------------------------------------------------------------- helpers */
@@ -1229,7 +1438,11 @@ const Model = (() => {
     const events = gl.events.filter(e => { const t = Date.parse(e.commence); return t > now && t < now + H * 3600e3 && (!onlyEventIds || onlyEventIds.includes(e.id)); });
     if (!events.length) { log(`${S.label}: no games with AU prices starting in the next ${H}h (change "Games within" to look further ahead)`); return { rows: [], matchups: [], injuries: [] }; }
     log(`${S.label}: ${events.length} games — player props…`);
+    const cost0 = Net.runCost();
     const propRes = await Net.pool(events, e => OddsAPI.props(sport, e.id, MKTS), 3);
+    // the API only charges for markets that come back with odds: remember the real cost per game for the estimate
+    const perGame = (Net.runCost() - cost0) / events.length;
+    if (perGame > 0 && !(typeof Demo !== "undefined" && Demo.active)) try { localStorage.setItem("evbet.costPerGame." + sport, String(perGame)); } catch (e) {}
     const quotes = gl.quotes.filter(q => events.some(e => e.id === q.eventId));
     let propRows = 0;
     propRes.forEach((r, i) => { if (Array.isArray(r)) { quotes.push(...r); propRows += r.length; } else log(`  props failed for ${events[i].away} @ ${events[i].home}: ${r?.__error?.message}`); });
@@ -1409,25 +1622,85 @@ const Model = (() => {
 
     // ---- project + price props (priced against every AU book; your bookie selection is applied after)
     const rows = [], opts = { bettable: null, commissions: Settings.commissions(), method: Settings.get("devig") };
+    ctxs.forEach(c => { c._logs = logs; c._players = players.filter(x => x.ctx === c && !x.unmatched); });
     for (const p of players) {
       if (p.unmatched || ["OUT", "DOUBTFUL"].includes(p.status)) continue;
       const c = p.ctx, lg = logs[p.athleteId];
       if (!lg) continue;
       const pl = { ...p, games: before(lg.cur, c.event.commence), prevGames: lg.prev };
       const oppId = p.side === "home" ? c.awayId : c.homeId, oppKey = p.side === "home" ? c.ak : c.hk;
-      for (const market of MKTS) {
+      const mainPr = {}; // base market -> de-vigged main-line prices (anchor for its alternate lines)
+      const order = [...MKTS].sort((a, b) => /_alternate$/.test(a) - /_alternate$/.test(b));
+      for (const market of order) {
+        const spec = specFor(sport, market);
+        if (!spec || spec.kind === "game") continue;
         const mq = c.quotes.filter(q => q.market === market && q.player === p.name);
         if (!mq.length) continue;
-        const proj = sport === "nba" ? projectNBA(pl, market, c) : projectNFL(pl, market, c);
+        let proj;
+        if (spec.kind === "first") { proj = firstScorer(sport, market, p, c); if (!proj) continue; }
+        else proj = project(sport, pl, market, c);
         if (!proj || !isFinite(proj.mean)) continue;
-        const H = playerHistory(sport, market, pl, careers[p.athleteId], oppId, oppKey);
-        for (const pr of Core.priceMarket(mq, opts)) {
-          const [po, pu, pp] = Core.probOverUnder(pr.line, proj.mean, proj.sd, proj.family);
-          const pWin = /over/i.test(pr.outcome) ? po : pu;
+        const H = spec.kind === "first" ? null : playerHistory(sport, spec.alt || market, pl, careers[p.athleteId], oppId, oppKey);
+        let prs = Core.priceMarket(mq, opts);
+        if (!spec.alt) mainPr[market] = prs;
+        if (prs.some(x => !(x.nBooks >= 1)))
+          prs = fillOneSided(prs, { marketMean: spec.alt ? impliedMean(mainPr[spec.alt] || [], proj) : null, holdDefault: spec.kind === "first" ? 0.25 : 0.08 });
+        for (const pr of prs) {
+          const [pWin, pp] = outcomeProb(spec, pr, proj);
+          if (!isFinite(pWin)) continue;
           rows.push(buildRow(sport, c, pr, Core.evaluate(pr, { pWin, pPush: pp, modelWeight: Settings.get("modelWeight") }),
             { player: p.name, athleteId: p.athleteId, team: p.side === "home" ? c.event.home : c.event.away, market, position: p.position,
               opponent: p.side === "home" ? c.event.away : c.event.home, mean: proj.mean, sd: proj.sd, notes: proj.notes, adj: proj.adj,
               status: p.status, injury: p.injury, hist: withHits(H, pr.line, pr.outcome) }));
+        }
+      }
+    }
+    // ---- lines, totals, team totals (+ alternates). Margin from ESPN's predictor; totals blend team scoring with the market
+    const GS = sport === "nba" ? { margin: 12, total: 18, team: 11 } : { margin: 13.5, total: 13, team: 9.5 };
+    for (const c of ctxs) {
+      const hw = c.pred?.homeWin, mMargin = isFinite(hw) ? P.spreadSigma * probit(hw) : NaN;
+      const st = c.standings, teamModel = sd => {
+        const own = st?.[sd]?.ppgFor, opp = st?.[sd === "home" ? "away" : "home"]?.ppgAllowed;
+        return isFinite(own) && isFinite(opp) ? (own + opp) / 2 : NaN; };
+      const mH = teamModel("home"), mA = teamModel("away");
+      const mktTotal = c.total, mktSpread = c.spreadHome;
+      // team scoring model = half our numbers, half the market's (team averages alone are noisy)
+      const totalModel = isFinite(mH + mA) ? (isFinite(mktTotal) ? 0.5 * (mH + mA) + 0.5 * mktTotal : mH + mA) : NaN;
+      const marginModel = isFinite(mMargin) ? mMargin : NaN;
+      const teamPts = { home: isFinite(totalModel) && isFinite(marginModel) ? (totalModel + marginModel) / 2 : NaN,
+                        away: isFinite(totalModel) && isFinite(marginModel) ? (totalModel - marginModel) / 2 : NaN };
+      const note = { spreads: "margin from ESPN's matchup predictor", totals: "half team scoring averages, half the market total" };
+      const push = (market, pr, pWin, pp, x) => rows.push(buildRow(sport, c, pr, Core.evaluate(pr, { pWin, pPush: pp, modelWeight: Settings.get("modelWeight") }), x));
+      for (const market of ["spreads", "alternate_spreads"]) {
+        if (!isFinite(marginModel)) break;
+        // put every price on the home team's number so both sides of a line pair up for de-vigging
+        const mq = c.quotes.filter(q => q.market === market).map(q => ({ ...q, line: Names.teamKey(q.outcome) === c.hk ? q.line : -q.line }));
+        if (!mq.length) continue;
+        for (const pr of fillOneSided(Core.priceMarket(mq, opts), { holdDefault: 0.05 })) {
+          const home = Names.teamKey(pr.outcome) === c.hk, teamLine = home ? pr.line : -pr.line;
+          const [po, pu, pp] = discreteOU(-pr.line, marginModel, GS.margin); // home covers when margin > -homeLine
+          push(market, { ...pr, line: teamLine }, home ? po : pu, pp, { player: "", team: pr.outcome, market, mean: home ? marginModel : -marginModel, sd: GS.margin,
+            notes: [note.spreads], status: "", adj: [{ k: "Projected margin", v: `${home ? "" : ""}${(home ? marginModel : -marginModel) > 0 ? "+" : ""}${(home ? marginModel : -marginModel).toFixed(1)}`, note: note.spreads }] });
+        }
+      }
+      for (const market of ["totals", "alternate_totals"]) {
+        if (!isFinite(totalModel)) break;
+        const mq = c.quotes.filter(q => q.market === market); if (!mq.length) continue;
+        for (const pr of fillOneSided(Core.priceMarket(mq, opts), { holdDefault: 0.05 })) {
+          const [po, pu, pp] = discreteOU(pr.line, totalModel, GS.total);
+          push(market, pr, /over/i.test(pr.outcome) ? po : pu, pp, { player: "", team: `${c.event.away} @ ${c.event.home}`, market, mean: totalModel, sd: GS.total, notes: [note.totals], status: "",
+            adj: [{ k: "Projected total", v: totalModel.toFixed(1), note: `team averages ${isFinite(mH + mA) ? (mH + mA).toFixed(1) : "—"} · market ${isFinite(mktTotal) ? mktTotal : "—"}` }] });
+        }
+      }
+      for (const market of ["team_totals", "alternate_team_totals"]) {
+        for (const [sd, name] of [["home", c.event.home], ["away", c.event.away]]) {
+          const mu = teamPts[sd]; if (!isFinite(mu)) continue;
+          const mq = c.quotes.filter(q => q.market === market && Names.teamKey(q.player || "") === (sd === "home" ? c.hk : c.ak)); if (!mq.length) continue;
+          for (const pr of fillOneSided(Core.priceMarket(mq, opts), { holdDefault: 0.05 })) {
+            const [po, pu, pp] = discreteOU(pr.line, mu, GS.team);
+            push(market, pr, /over/i.test(pr.outcome) ? po : pu, pp, { player: name, team: name, market, mean: mu, sd: GS.team, notes: ["projected total split by the predicted margin"], status: "",
+              opponent: sd === "home" ? c.event.away : c.event.home, adj: [{ k: "Projected team points", v: mu.toFixed(1), note: "game total split by the predicted margin" }] });
+          }
         }
       }
     }
@@ -1457,15 +1730,14 @@ const Model = (() => {
 
   /* ---------------------------------------------------------------- player history */
   function statValue(sport, market, g) {
-    const spec = MARKETS[market];
-    if (spec.stats) return statOf(g, spec.stats);
-    return g.stats[market === "player_pass_tds" ? "passTd" : spec.eff && market !== "player_pass_attempts" ? spec.eff : spec.vol];
+    const spec = specFor(sport, market); if (!spec) return NaN;
+    if (spec.value) return spec.value(g);
+    return spec.stats ? statOf(g, spec.stats) : NaN;
   }
   function careerValue(sport, market, cs) {
-    if (!cs) return NaN;
-    const spec = MARKETS[market];
-    if (spec.stats) { const v = spec.stats.map(k => cs[k]); return v.every(isFinite) ? v.reduce((a, b) => a + b, 0) : NaN; }
-    return cs[market === "player_pass_tds" ? "passTd" : spec.eff && market !== "player_pass_attempts" ? spec.eff : spec.vol];
+    const spec = specFor(sport, market);
+    if (!cs || !spec?.stats || spec.value) return NaN;
+    const v = spec.stats.map(k => cs[k]); return v.every(isFinite) ? v.reduce((a, b) => a + b, 0) : NaN;
   }
   // Season / last-5 / last-10 / last season / career / vs this opponent, for one player and market
   function playerHistory(sport, market, pl, career, oppId, oppKey) {
@@ -1486,8 +1758,9 @@ const Model = (() => {
   }
   // hit rates for a specific line and side
   function withHits(H, line, outcome) {
-    if (line == null) return H;
-    const over = /over/i.test(outcome), hit = v => (over ? v > line : v < line);
+    if (/^(yes|no)$/i.test(outcome)) line = 0.5;  // Yes/No markets: did it happen (value 1) or not
+    if (line == null || !H) return H;
+    const over = /over|yes/i.test(outcome), hit = v => (over ? v > line : v < line);
     const rate = vs => (vs.length ? { hits: vs.filter(hit).length, n: vs.length } : null);
     return { ...H, line, over, hit: { l5: rate(H.values.slice(-5)), l10: rate(H.values.slice(-10)), season: rate(H.values), lastSeason: rate(H.prevValues),
       vsOpp: H.vsOpp ? rate(H.vsOpp.values) : null }, last5: H.last5.map(g => ({ ...g, hit: hit(g.v), push: g.v === line })) };
@@ -1517,11 +1790,11 @@ const Model = (() => {
       sport, eventId: c.event.id, espnEventId: c.espnEv?.espnId || null, commence: c.event.commence,
       home: c.event.home, away: c.event.away, ...x, outcome: pr.outcome, line: pr.line,
       marketProb: pr.marketProb, nBooks: pr.nBooks, nBettable: pr.nBettable, bestBook: pr.bestBook, bestPrice: pr.bestPrice,
-      bestNet: pr.bestNet, bestLink: pr.bestLink, allPrices: pr.allPrices, hold: pr.hold, ...ev, stake,
+      bestNet: pr.bestNet, bestLink: pr.bestLink, allPrices: pr.allPrices, hold: pr.hold, oneSided: !!pr.oneSided, est: pr.est || "", ...ev, stake,
     };
   }
 
-  return { runSport, projectNBA, projectNFL, etDate, espnSeason, matchPlayer, probit, applyBooks, statValue };
+  return { runSport, project, projectNBA, projectNFL, outcomeProb, discreteOU, fillOneSided, impliedMean, etDate, espnSeason, matchPlayer, probit, applyBooks, statValue };
 })();
 
 /* ============================================================================
@@ -1560,7 +1833,8 @@ const Track = (() => {
     const main = {};
     for (const r of rows) { const g = [r.sport, r.eventId, r.market, r.player, r.outcome].join("|"); if (!main[g] || (r.nBooks || 0) > (main[g].nBooks || 0)) main[g] = r; }
     const keep = new Set(Object.values(main));
-    rows = rows.filter(r => keep.has(r) || pinned.has(keyOf(r)));
+    const skip = r => /_alternate$/.test(r.market) || specFor(r.sport, r.market)?.noGrade; // first-scorer markets can't be graded from box scores
+    rows = rows.filter(r => (keep.has(r) && !skip(r)) || pinned.has(keyOf(r)));
     let n = 0;
     for (const r of rows) {
       if (ts >= Date.parse(r.commence) || !isFinite(r.modelProb)) continue;
@@ -1579,15 +1853,11 @@ const Track = (() => {
     return n;
   }
 
-  function actualFor(market, g) {
-    const spec = MARKETS[market];
-    if (spec.stats) return spec.stats.reduce((s, k) => s + (g.stats[k] || 0), 0);
-    const key = market === "player_pass_tds" ? "passTd" : spec.eff && market !== "player_pass_attempts" ? spec.eff : spec.vol;
-    return g.stats[key];
-  }
+  const actualFor = (rec, g) => Model.statValue(rec.sport, rec.market, g);
   function grade(rec, actual) {
     if (rec.market === "h2h") return actual;
-    const over = /over/i.test(rec.outcome), d = over ? actual - rec.line : rec.line - actual;
+    const line = /^(yes|no)$/i.test(rec.outcome) ? 0.5 : rec.line;
+    const over = /over|yes/i.test(rec.outcome), d = over ? actual - line : line - actual;
     return d > 0 ? "win" : d < 0 ? "loss" : "push";
   }
 
@@ -1608,10 +1878,12 @@ const Track = (() => {
     let settled = 0;
     // props: by athlete
     const byAthlete = {};
-    pending.filter(r => r.market !== "h2h" && r.athleteId).forEach(r => (byAthlete[r.sport + "|" + r.athleteId] ||= []).push(r));
+    pending = pending.filter(r => !specFor(r.sport, r.market)?.noGrade); // first scorer: settle these yourself in My bets
+    const isGame = r => isGameMarket(r.market);
+    pending.filter(r => !isGame(r) && r.athleteId).forEach(r => (byAthlete[r.sport + "|" + r.athleteId] ||= []).push(r));
     // 1) box score per ESPN event (covers every player in the game with one call)
     const byEvent = {};
-    pending.filter(r => r.market !== "h2h" && r.athleteId && r.espnEventId).forEach(r => (byEvent[r.sport + "|" + r.espnEventId] ||= []).push(r));
+    pending.filter(r => !isGame(r) && r.athleteId && r.espnEventId).forEach(r => (byEvent[r.sport + "|" + r.espnEventId] ||= []).push(r));
     await Net.pool(Object.entries(byEvent), async ([k, recs]) => {
       const [sport, eid] = k.split("|");
       const b = await ESPN.boxscore(sport, eid);
@@ -1621,7 +1893,7 @@ const Track = (() => {
         // NFL box scores omit players with no stats, so a missing NFL player is left for the game-log check
         if (!L) { if (sport === "nba") { r.result = "void"; settled++; } continue; }
         if (L.dnp || (sport === "nba" && !(L.stats.min > 0))) { r.result = "void"; settled++; continue; }
-        const a = actualFor(r.market, { stats: L.stats }); r.actual = a; r.result = grade(r, a); settled++;
+        const a = actualFor(r, { stats: L.stats }); r.actual = a; r.result = grade(r, a); settled++;
       }
     }, 4);
     // 2) anything left: athlete game logs
@@ -1634,13 +1906,13 @@ const Track = (() => {
       for (const r of recs) {
         const g = games.find(x => r.espnEventId && x.eventId === r.espnEventId) ||
                   games.find(x => Model.etDate(x.date) === Model.etDate(r.commence));
-        if (g) { const a = actualFor(r.market, g); r.actual = a; r.result = grade(r, a); settled++; }
+        if (g) { const a = actualFor(r, g); r.actual = a; r.result = grade(r, a); settled++; }
         else if (now - Date.parse(r.commence) > 3 * 864e5) { r.result = "void"; settled++; } // did not play
       }
     }, 4);
-    // moneylines: by sport + ET date via scoreboard
+    // moneylines, lines, totals, team totals: by sport + ET date via scoreboard
     const byDay = {};
-    pending.filter(r => r.market === "h2h").forEach(r => (byDay[r.sport + "|" + Model.etDate(r.commence)] ||= []).push(r));
+    pending.filter(isGame).forEach(r => (byDay[r.sport + "|" + Model.etDate(r.commence)] ||= []).push(r));
     for (const [k, recs] of Object.entries(byDay)) {
       const [sport, date] = k.split("|");
       const sb = await ESPN.scoreboard(sport, date).catch(() => []);
@@ -1648,8 +1920,16 @@ const Track = (() => {
         const ev = sb.find(x => x.espnId === r.espnEventId) || sb.find(x => x.home.key === Names.teamKey(r.home) && x.away.key === Names.teamKey(r.away));
         if (!ev || ev.state !== "post") continue;
         const hs = Number(ev.home.score), as = Number(ev.away.score);
-        const winnerKey = hs > as ? ev.home.key : as > hs ? ev.away.key : null;
-        r.result = winnerKey === null ? "push" : Names.teamKey(r.outcome) === winnerKey ? "win" : "loss";
+        const wl = d => (d > 0 ? "win" : d < 0 ? "loss" : "push");
+        if (r.market === "h2h") {
+          const winnerKey = hs > as ? ev.home.key : as > hs ? ev.away.key : null;
+          r.result = winnerKey === null ? "push" : Names.teamKey(r.outcome) === winnerKey ? "win" : "loss";
+        } else if (/spreads/.test(r.market)) {
+          const home = Names.teamKey(r.outcome) === ev.home.key, m = home ? hs - as : as - hs; r.result = wl(m + r.line);
+        } else {
+          const pts = /team_totals/.test(r.market) ? (Names.teamKey(r.player || r.team) === ev.home.key ? hs : as) : hs + as;
+          r.result = wl(/over/i.test(r.outcome) ? pts - r.line : r.line - pts);
+        }
         r.actual = `${as}-${hs}`; settled++;
       }
     }
@@ -1720,15 +2000,17 @@ const Lines = (() => {
   // quotes: normalised Odds API rows (one per book x outcome)
   function record(quotes, ts) {
     const groups = {};
-    for (const q of quotes) { if (!q.player && q.market !== "h2h") continue; (groups[key(q.sport, q.eventId, q.market, q.player)] ||= []).push(q); }
+    for (const q of quotes) {
+      if ((!q.player && q.market !== "h2h") || /_alternate$|1st_td|last_td|first_basket/.test(q.market)) continue; // alt lines follow their main line
+      (groups[key(q.sport, q.eventId, q.market, q.player)] ||= []).push(q); }
     for (const [k, qs] of Object.entries(groups)) {
       let main = null;
-      if (qs[0].market !== "h2h") { // main line = the line quoted by most books
+      if (qs.some(q => q.line != null)) { // main line = the line quoted by most books
         const cnt = {}; qs.forEach(q => (cnt[q.line] = (cnt[q.line] || 0) + 1));
         main = +Object.entries(cnt).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
       }
       const at = qs.filter(q => main === null || q.line === main);
-      const sideA = at.filter(q => (main === null ? Names.teamKey(q.outcome) === Names.teamKey(qs[0].home) : /over/i.test(q.outcome)));
+      const sideA = at.filter(q => (main === null && qs[0].market === "h2h" ? Names.teamKey(q.outcome) === Names.teamKey(qs[0].home) : /over|yes/i.test(q.outcome)));
       const sideB = at.filter(q => !sideA.includes(q));
       const byBook = {}; at.forEach(q => (byBook[q.book] ||= []).push(q));
       const fairs = Object.values(byBook).filter(b => b.length === 2).map(b => { const f = Core.devig(b.map(q => 1 / q.price)); return sideA.includes(b[0]) ? f[0] : f[1]; });
@@ -1974,9 +2256,9 @@ const Bets = (() => {
     const b = {
       id, placedAt: placedAt || now(), sport: r.sport, eventId: r.eventId, espnEventId: r.espnEventId, athleteId: r.athleteId || null,
       commence: r.commence, home: r.home, away: r.away, event: `${r.away} @ ${r.home}`,
-      betType: r.market === "h2h" ? "Moneyline" : "Player prop", market: r.market, marketLabel: MARKETS[r.market]?.label || r.market,
+      betType: betTypeOf(r.market), market: r.market, marketLabel: marketLabel(r.market, r.sport),
       player: r.player || r.team, team: r.team, outcome: r.outcome, line: r.line,
-      selection: r.line != null ? `${r.outcome} ${r.line}` : r.outcome,
+      selection: r.line == null ? r.outcome : `${r.outcome} ${/spreads/.test(r.market) && r.line > 0 ? "+" : ""}${r.line}`,
       book, odds: +odds, stake: +stake, commission: commissionFor(book),
       modelProb: r.modelProb, pPush: r.pPush || 0, marketProb: r.marketProb, boardPrice: r.bestPrice, boardBook: r.bestBook,
       projection: isFinite(r.mean) ? +r.mean.toFixed(2) : null, suggestedStake: r.stake,
@@ -2105,7 +2387,7 @@ const Bets = (() => {
     "Odds", "Stake", "Commission", "Implied prob", "Model prob", "Market prob (no-vig)", "EV %", "Expected profit", "Suggested stake",
     "Closing odds", "Closing fair prob", "CLV %", "Status", "Cash-out return", "Result", "Return", "P/L", "Cumulative P/L", "Notes"];
   const C = Object.fromEntries(HEAD.map((h, i) => [h, XLSX.col(i)]));
-  const BET_TYPES = ["Player prop", "Moneyline", "Line", "Total", "Multi", "Other"];
+  const BET_TYPES = ["Player prop", "Moneyline", "Line", "Total", "Team total", "Multi", "Other"];
 
   // Builds the whole workbook. blankRows: empty formula rows after the bets, for typing bets in Excel.
   function exportXlsx({ blankRows = 500, templateNote = false } = {}) {
@@ -2476,7 +2758,8 @@ const Demo = (() => {
         const nm = name("nba" + i + j);
         W.nba.players.push({ id: String(pid++), team: t.id, name: nm, oddsName: j === 2 && i === 0 ? nm + " Jr." : nm, pos,
           min: m + 2 * N(nm), pts: 0.36 + 0.24 * U(nm + "p"), reb: { G: 0.13, F: 0.2, C: 0.32 }[pos] * (0.8 + 0.4 * U(nm + "r")),
-          ast: { G: 0.2, F: 0.1, C: 0.07 }[pos] * (0.7 + 0.7 * U(nm + "a")), fg3: { G: 0.085, F: 0.06, C: 0.02 }[pos] * (0.6 + 0.8 * U(nm + "t")) });
+          ast: { G: 0.2, F: 0.1, C: 0.07 }[pos] * (0.7 + 0.7 * U(nm + "a")), fg3: { G: 0.085, F: 0.06, C: 0.02 }[pos] * (0.6 + 0.8 * U(nm + "t")),
+          blk: { G: 0.012, F: 0.022, C: 0.05 }[pos] * (0.6 + 0.8 * U(nm + "b")), stl: { G: 0.036, F: 0.028, C: 0.022 }[pos] * (0.7 + 0.6 * U(nm + "s")) });
       });
     });
     // --- NFL
@@ -2524,12 +2807,19 @@ const Demo = (() => {
         for (const p of active) {
           const b2bf = g.b2b?.[team.id] ? 0.96 : 1;
           const mExp = (p.min + outMin * 0.8 * p.min / actMin) * b2bf, fx = opp.def * Math.sqrt(team.pace * opp.pace) * (g.b2b?.[team.id] ? 0.98 : 1);
-          g.exp = g.exp || {}; g.exp[p.id] = { player_points: mExp * p.pts * fx, player_rebounds: mExp * p.reb * fx, player_assists: mExp * p.ast * fx,
-            player_threes: mExp * p.fg3 * fx, player_points_rebounds_assists: mExp * (p.pts + p.reb + p.ast) * fx };
+          const e = { pts: mExp * p.pts * fx, reb: mExp * p.reb * fx, ast: mExp * p.ast * fx, fg3: mExp * p.fg3 * fx, blk: mExp * p.blk, stl: mExp * p.stl, tov: mExp * 0.05 };
+          g.exp = g.exp || {}; g.exp[p.id] = { player_points: e.pts, player_rebounds: e.reb, player_assists: e.ast, player_threes: e.fg3,
+            player_blocks: e.blk, player_steals: e.stl, player_blocks_steals: e.blk + e.stl, player_turnovers: e.tov,
+            player_frees_made: e.pts * 0.17, player_field_goals: (e.pts * 0.83 - e.fg3) / 2 + e.fg3,
+            player_points_rebounds_assists: e.pts + e.reb + e.ast, player_points_rebounds: e.pts + e.reb, player_points_assists: e.pts + e.ast,
+            player_rebounds_assists: e.reb + e.ast, _e: e };
           const s = g.id + p.id, m = Math.min(Math.max(mExp + 4 * N(s + "m"), 4), 44);
           const f = fx;
-          const b = { tov: pois(m * 0.05, s + "to"), min: Math.round(m), pts: pois(m * p.pts * f, s + "p"), reb: pois(m * p.reb * f, s + "r"), ast: pois(m * p.ast * f, s + "a"), fg3: pois(m * p.fg3 * f, s + "t") };
-          b.fg3 = Math.min(b.fg3, Math.floor(b.pts / 3)); g.box[p.id] = b; pts += b.pts;
+          const b = { tov: pois(m * 0.05, s + "to"), min: Math.round(m), pts: pois(m * p.pts * f, s + "p"), reb: pois(m * p.reb * f, s + "r"), ast: pois(m * p.ast * f, s + "a"), fg3: pois(m * p.fg3 * f, s + "t"),
+                      blk: pois(m * p.blk, s + "bk"), stl: pois(m * p.stl, s + "st") };
+          b.fg3 = Math.min(b.fg3, Math.floor(b.pts / 3));
+          b.ftm = Math.min(pois(b.pts * 0.17, s + "ft"), b.pts - 3 * b.fg3); b.fgm = b.fg3 + Math.floor((b.pts - b.ftm - 3 * b.fg3) / 2); b.ftm = b.pts - 3 * b.fg3 - 2 * (b.fgm - b.fg3);
+          g.box[p.id] = b; pts += b.pts;
         }
         g.score[team.id] = pts + Math.round(12 + 4 * N(g.id + team.id));
         (g.expScore ||= {})[team.id] = active.reduce((s2, p) => s2 + g.exp[p.id].player_points, 0) + 12;
@@ -2553,17 +2843,23 @@ const Demo = (() => {
           const ry = rec ? Math.max(0, Math.round(rec * p.ypr * opp.def + 6 * Math.sqrt(rec) * N(s + "y"))) : 0;
           const c = Math.max(0, Math.round(car * p.rs / rsum + Math.sqrt(car * p.rs / rsum + 0.01) * N(s + "r")));
           const rush = c ? Math.round(c * p.ypc * opp.def + 5 * Math.sqrt(c) * N(s + "u")) : 0;
-          g.box[p.id] = { cmp: 0, att: 0, passYds: 0, passTd: 0, car: c, rushYds: rush, rec, tgt, recYds: ry };
+          const rtd = p.pos === "QB" ? 0.012 : 0.03, ctd = p.pos === "RB" ? 0.04 : 0.075;
+          g.box[p.id] = { cmp: 0, att: 0, passYds: 0, passTd: 0, int: 0, car: c, rushYds: rush, rec, tgt, recYds: ry, rushTd: pois(c * rtd * opp.def, s + "rt"), recTd: pois(rec * ctd * opp.def, s + "ct") };
           const et = tAtt * p.ts / tsum, ec = tCar * p.rs / rsum;
           g.exp = g.exp || {}; g.exp[p.id] = { player_reception_yds: et * p.catch * p.ypr * opp.def, player_receptions: et * p.catch,
-            player_rush_yds: ec * p.ypc * opp.def, player_rush_attempts: ec, _tgtYds: et * p.catch * p.ypr * opp.def };
+            player_rush_yds: ec * p.ypc * opp.def, player_rush_attempts: ec, _tgtYds: et * p.catch * p.ypr * opp.def,
+            player_rush_tds: ec * rtd * opp.def, player_reception_tds: et * p.catch * ctd * opp.def };
+          const x = g.exp[p.id];
+          Object.assign(x, { player_rush_reception_yds: x.player_rush_yds + x.player_reception_yds, player_rush_reception_tds: x.player_rush_tds + x.player_reception_tds,
+            player_tds_over: x.player_rush_tds + x.player_reception_tds, player_anytime_td: x.player_rush_tds + x.player_reception_tds });
           recYds += ry; cmp += rec; rushYds += rush;
         }
         const qb = roster.find(p => p.pos === "QB");
         if (qb) {
-          Object.assign(g.box[qb.id], { cmp, att, passYds: recYds, passTd: pois(att * qb.tdr, g.id + "td" + qb.id) });
-          const py = roster.reduce((s2, p) => s2 + (g.exp[p.id]?._tgtYds || 0), 0);
-          Object.assign(g.exp[qb.id], { player_pass_attempts: tAtt, player_pass_yds: py, player_pass_tds: tAtt * qb.tdr });
+          Object.assign(g.box[qb.id], { cmp, att, passYds: recYds, passTd: pois(att * qb.tdr, g.id + "td" + qb.id), int: pois(att * 0.024, g.id + "in" + qb.id) });
+          const py = roster.reduce((s2, p) => s2 + (g.exp[p.id]?._tgtYds || 0), 0), pc = roster.reduce((s2, p) => s2 + (g.exp[p.id]?.player_receptions || 0), 0);
+          Object.assign(g.exp[qb.id], { player_pass_attempts: tAtt, player_pass_yds: py, player_pass_tds: tAtt * qb.tdr, player_pass_completions: pc,
+            player_pass_interceptions: tAtt * 0.024, player_pass_rush_yds: py + g.exp[qb.id].player_rush_yds });
         }
         g.score[team.id] = Math.max(0, Math.round((recYds + rushYds) / 18 + 7 * (g.box[qb?.id]?.passTd || 0) * 0.6 + 3 * N(s0 + "s")));
         const ey = roster.reduce((s2, p) => s2 + (g.exp[p.id]?.player_reception_yds || 0) + (g.exp[p.id]?.player_rush_yds || 0), 0);
@@ -2608,24 +2904,66 @@ const Demo = (() => {
   }
   function propMarkets(sport, g, b, wanted) {
     const players = world[sport].players.filter(p => (p.team === g.home.id || p.team === g.away.id) && !(world[sport].injuries.some(([q, st]) => q === p && /out|doubtful/i.test(st)) && g.t > world.injuryStart));
-    const out = [];
-    for (const market of SPORTS[sport].markets) {
-      if (wanted && !wanted.includes(market)) continue;
+    const out = [], vig = b === "betfair_ex_au" ? 1.015 : 1.07, pr = (p, v = vig) => +(1 / Math.min(Math.max(p * v, 0.02), 0.97)).toFixed(2);
+    const noise = (k, a = 0.015) => a * N(k + b + bucket());
+    for (const market of wanted || SPORTS[sport].markets) {
+      const spec = specFor(sport, market); if (!spec || spec.kind === "game") continue;
       const outcomes = [];
-      for (const p of players) {
-        const mu = g.exp?.[p.id]?.[market] ?? trueMean(sport, p, market);
-        if (!(mu > 0.4) || U(g.id + p.id + market + b) < 0.2) continue;
-        const est = mu * (1 + 0.05 * N(g.id + p.id + market) + 0.03 * N(g.id + p.id + market + b + bucket()));
-        const line = est >= 2 ? Math.floor(est) + 0.5 : est < 1.2 ? 0.5 : 1.5;
-        const [fam, cv] = SPEC[market];
-        let po = Core.probOverUnder(line, est, Math.max(est * cv, 0.6), fam)[0];
-        po = Math.min(Math.max(po + 0.015 * N(g.id + p.id + market + b + "s"), 0.25), 0.75);
-        const vig = b === "betfair_ex_au" ? 1.015 : 1.07;
-        outcomes.push({ name: "Over", description: p.oddsName, price: +(1 / (po * vig)).toFixed(2), point: line },
-                      { name: "Under", description: p.oddsName, price: +(1 / ((1 - po) * vig)).toFixed(2), point: line });
+      if (spec.kind === "first") {
+        // first scorer: favourites only (starters / skill players), heavy margin
+        const cands = players.filter(p => sport === "nba" ? world.nba.players.filter(q => q.team === p.team).indexOf(p) < 5 : p.pos !== "QB");
+        const w = cands.map(p => sport === "nba" ? (g.exp[p.id]?.player_points || 0) : (g.exp[p.id]?.player_anytime_td || 0)), tot = w.reduce((a, x) => a + x, 0) || 1;
+        cands.forEach((p, i) => { if (U(g.id + p.id + market + b) < 0.15) return;
+          const q = (sport === "nba" ? 0.97 : 0.88) * w[i] / tot * (sport === "nba" ? 2 : 1) / (sport === "nba" ? 2 : 1);
+          outcomes.push({ name: "Yes", description: p.oddsName, price: pr(Math.max(q * (1 + noise(p.id + market, 0.15)), 0.01), 1.28) }); });
+      } else for (const p of players) {
+        const base = spec.alt || market, e = g.exp?.[p.id];
+        let mu = e?.[base]; if (spec.model === "dd" || spec.model === "td3") mu = e ? 1 : undefined;
+        if (!(mu > 0) || U(g.id + p.id + market + b) < 0.2) continue;
+        const famCv = { normal: 0.3, negbin: 0.45, poisson: 0.8 }, fam = spec.family || "normal", cv = spec.cv || famCv[fam] || 0.35;
+        const est = mu * (1 + 0.05 * N(g.id + p.id + base) + 0.03 * N(g.id + p.id + base + b + bucket()));
+        const dist = l => Core.probOverUnder(l, est, Math.max(est * cv, 0.6), fam === "poisson" ? "negbin" : fam)[0];
+        if (spec.model === "dd" || spec.model === "td3") {
+          const ee = e._e; if (!ee) continue;
+          const q = ["pts", "reb", "ast"].map(k => Core.probOverUnder(9.5, ee[k], Math.max(ee[k] * 0.4, 1.2), "negbin")[0]);
+          const py = spec.model === "dd" ? q[0] * q[1] + q[0] * q[2] + q[1] * q[2] - 2 * q[0] * q[1] * q[2] : q[0] * q[1] * q[2];
+          if (py < 0.03) continue;
+          const pp = Math.min(Math.max(py + noise(p.id + market, 0.03), 0.02), 0.95);
+          outcomes.push({ name: "Yes", description: p.oddsName, price: pr(pp) });
+          if (U(b + "no") < 0.5) outcomes.push({ name: "No", description: p.oddsName, price: pr(1 - pp) });
+        } else if (spec.kind === "yn") { // anytime TD
+          const py = 1 - Math.exp(-est); if (py < 0.05) continue;
+          outcomes.push({ name: "Yes", description: p.oddsName, price: pr(Math.min(Math.max(py + noise(p.id + market, 0.03), 0.03), 0.9), 1.1) });
+        } else if (spec.alt) { // "X+" milestones, Over only
+          const main = est >= 2 ? Math.floor(est) + 0.5 : 0.5, step = Math.max(Math.round(est * 0.2), 1);
+          for (const l of [main - 2 * step, main - step, main + step, main + 2 * step]) {
+            if (l <= 0) continue; const po = dist(l); if (po < 0.04 || po > 0.96) continue;
+            outcomes.push({ name: "Over", description: p.oddsName, price: pr(Math.min(Math.max(po + noise(p.id + market + l, 0.02), 0.02), 0.97), 1.1), point: l });
+          }
+        } else {
+          const line = est >= 2 ? Math.floor(est) + 0.5 : est < 1.2 ? 0.5 : 1.5;
+          let po = Math.min(Math.max(dist(line) + 0.015 * N(g.id + p.id + market + b + "s"), 0.25), 0.75);
+          outcomes.push({ name: "Over", description: p.oddsName, price: pr(po), point: line }, { name: "Under", description: p.oddsName, price: pr(1 - po), point: line });
+        }
       }
       if (outcomes.length) out.push({ key: market, outcomes });
     }
+    // game alternates and team totals (event endpoint only)
+    const sigma = sport === "nba" ? 12 : 13.5, diff = g.expScore[g.home.id] - g.expScore[g.away.id], tot = g.expScore[g.home.id] + g.expScore[g.away.id];
+    const gv = b === "betfair_ex_au" ? 1.01 : 1.05, gp = p => +(1 / Math.min(Math.max(p * gv, 0.03), 0.97)).toFixed(2);
+    const want = m => !wanted || wanted.includes(m);
+    if (want("alternate_spreads")) { const o = [];
+      for (const d of [-6, -3, 3, 6]) { const l = Math.round((-diff + d) * 2) / 2; const ph = 1 - Core.normCdf(-l, diff + 0.6 * N(g.id + b + "as" + d), sigma);
+        o.push({ name: g.home.oddsName, price: gp(ph), point: l }, { name: g.away.oddsName, price: gp(1 - ph), point: -l }); }
+      out.push({ key: "alternate_spreads", outcomes: o }); }
+    if (want("alternate_totals")) { const o = [];
+      for (const d of [-10, -5, 5, 10]) { const l = Math.round((tot + d) * 2) / 2 + 0.5 * (Math.round(tot + d) === tot + d ? 1 : 0); const po = 1 - Core.normCdf(l, tot + 1.5 * N(g.id + b + "at" + d), sport === "nba" ? 18 : 13);
+        o.push({ name: "Over", price: gp(po), point: l }, { name: "Under", price: gp(1 - po), point: l }); }
+      out.push({ key: "alternate_totals", outcomes: o }); }
+    if (want("team_totals")) { const o = [];
+      for (const t of [g.home, g.away]) { const mu = g.expScore[t.id], l = Math.round(mu + 1.2 * N(g.id + b + "tt" + t.id)) + 0.5, po = 1 - Core.normCdf(l, mu, sport === "nba" ? 11 : 9.5);
+        o.push({ name: "Over", description: t.oddsName, price: gp(po), point: l }, { name: "Under", description: t.oddsName, price: gp(1 - po), point: l }); }
+      out.push({ key: "team_totals", outcomes: o }); }
     return out;
   }
   const oddsEvent = (g, markets) => ({ id: hex("odds" + g.id), commence_time: iso(g.t), home_team: g.home.oddsName, away_team: g.away.oddsName,
@@ -2634,15 +2972,15 @@ const Demo = (() => {
   function gamelogFor(sport, id) {
     const p = world[sport].players.find(x => x.id === id);
     const games = world[sport].games.filter(g => played(g) && g.box[id]);
-    const names = sport === "nba" ? ["minutes", "fieldGoalsMade-fieldGoalsAttempted", "threePointFieldGoalsMade-threePointFieldGoalsAttempted", "totalRebounds", "assists", "points"]
-      : ["completions", "passingAttempts", "passingYards", "passingTouchdowns", "rushingAttempts", "rushingYards", "receptions", "receivingTargets", "receivingYards"];
-    const labels = sport === "nba" ? ["MIN", "FG", "3PT", "REB", "AST", "PTS"] : ["CMP", "ATT", "YDS", "TD", "CAR", "YDS", "REC", "TGTS", "YDS"];
+    const names = sport === "nba" ? ["minutes", "fieldGoalsMade-fieldGoalsAttempted", "threePointFieldGoalsMade-threePointFieldGoalsAttempted", "freeThrowsMade-freeThrowsAttempted", "totalRebounds", "assists", "blocks", "steals", "turnovers", "points"]
+      : ["completions", "passingAttempts", "passingYards", "passingTouchdowns", "interceptions", "rushingAttempts", "rushingYards", "rushingTouchdowns", "receptions", "receivingTargets", "receivingYards", "receivingTouchdowns"];
+    const labels = sport === "nba" ? ["MIN", "FG", "3PT", "FT", "REB", "AST", "BLK", "STL", "TO", "PTS"] : ["CMP", "ATT", "YDS", "TD", "INT", "CAR", "YDS", "TD", "REC", "TGTS", "YDS", "TD"];
     const events = {}, rows = [];
     for (const g of games) {
       const b = g.box[id], home = g.home.id === p.team, opp = home ? g.away : g.home;
       events[g.id] = { id: g.id, gameDate: iso(g.t), atVs: home ? "vs" : "@", opponent: { id: opp.id, abbreviation: opp.abbr, displayName: opp.name } };
-      rows.push({ eventId: g.id, stats: sport === "nba" ? [String(b.min), `${Math.round(b.pts / 2.3)}-${Math.round(b.pts / 1.1)}`, `${b.fg3}-${b.fg3 * 2 + 1}`, String(b.reb), String(b.ast), String(b.pts)]
-        : [b.cmp, b.att, b.passYds, b.passTd, b.car, b.rushYds, b.rec, b.tgt, b.recYds].map(String) });
+      rows.push({ eventId: g.id, stats: sport === "nba" ? [String(b.min), `${b.fgm}-${b.fgm * 2 + 2}`, `${b.fg3}-${b.fg3 * 2 + 1}`, `${b.ftm}-${b.ftm + 1}`, String(b.reb), String(b.ast), String(b.blk), String(b.stl), String(b.tov), String(b.pts)]
+        : [b.cmp, b.att, b.passYds, b.passTd, b.int, b.car, b.rushYds, b.rushTd, b.rec, b.tgt, b.recYds, b.recTd].map(String) });
     }
     return { names, labels, events, seasonTypes: rows.length ? [{ displayName: "2026 Regular Season", categories: [{ displayName: "Season", events: rows.reverse() }] }] : [] };
   }
@@ -2743,15 +3081,15 @@ const Demo = (() => {
         predictor: { homeTeam: { gameProjection: (ph * 100).toFixed(1) }, awayTeam: { gameProjection: ((1 - ph) * 100).toFixed(1) } } };
       if (played(g)) out.boxscore = { players: [g.home, g.away].map(t => {
         const roster = W.players.filter(p => p.team === t.id);
-        if (sport === "nba") return { team: { id: t.id }, statistics: [{ keys: ["minutes", "fieldGoalsMade-fieldGoalsAttempted", "threePointFieldGoalsMade-threePointFieldGoalsAttempted", "freeThrowsMade-freeThrowsAttempted", "rebounds", "assists", "turnovers", "points"],
-          labels: ["MIN", "FG", "3PT", "FT", "REB", "AST", "TO", "PTS"], athletes: roster.map(p => { const b = g.box[p.id];
-            return b ? { athlete: { id: p.id, displayName: p.name, position: { abbreviation: p.pos } }, stats: [String(b.min), `${Math.round(b.pts / 2.3)}-${Math.round(b.pts / 1.1)}`, `${b.fg3}-${b.fg3 * 2 + 1}`, `${Math.round(b.pts * 0.2)}-${Math.round(b.pts * 0.25)}`, String(b.reb), String(b.ast), String(b.tov ?? 2), String(b.pts)] }
+        if (sport === "nba") return { team: { id: t.id }, statistics: [{ keys: ["minutes", "fieldGoalsMade-fieldGoalsAttempted", "threePointFieldGoalsMade-threePointFieldGoalsAttempted", "freeThrowsMade-freeThrowsAttempted", "rebounds", "assists", "steals", "blocks", "turnovers", "points"],
+          labels: ["MIN", "FG", "3PT", "FT", "REB", "AST", "STL", "BLK", "TO", "PTS"], athletes: roster.map(p => { const b = g.box[p.id];
+            return b ? { athlete: { id: p.id, displayName: p.name, position: { abbreviation: p.pos } }, stats: [String(b.min), `${b.fgm}-${b.fgm * 2 + 2}`, `${b.fg3}-${b.fg3 * 2 + 1}`, `${b.ftm}-${b.ftm + 1}`, String(b.reb), String(b.ast), String(b.stl ?? 1), String(b.blk ?? 0), String(b.tov ?? 2), String(b.pts)] }
                      : { athlete: { id: p.id, displayName: p.name, position: { abbreviation: p.pos } }, stats: [], didNotPlay: true }; }) }] };
         const ath = (f, mk) => roster.filter(p => g.box[p.id] && f(g.box[p.id])).map(p => ({ athlete: { id: p.id, displayName: p.name, position: { abbreviation: p.pos } }, stats: mk(g.box[p.id]) }));
         return { team: { id: t.id }, statistics: [
-          { name: "passing", keys: ["completions/passingAttempts", "passingYards", "passingTouchdowns"], labels: ["C/ATT", "YDS", "TD"], athletes: ath(b => b.att > 0, b => [`${b.cmp}/${b.att}`, String(b.passYds), String(b.passTd)]) },
-          { name: "rushing", keys: ["rushingAttempts", "rushingYards"], labels: ["CAR", "YDS"], athletes: ath(b => b.car > 0, b => [String(b.car), String(b.rushYds)]) },
-          { name: "receiving", keys: ["receptions", "receivingYards", "receivingTargets"], labels: ["REC", "YDS", "TGTS"], athletes: ath(b => b.tgt > 0, b => [String(b.rec), String(b.recYds), String(b.tgt)]) } ] };
+          { name: "passing", keys: ["completions/passingAttempts", "passingYards", "passingTouchdowns", "interceptions"], labels: ["C/ATT", "YDS", "TD", "INT"], athletes: ath(b => b.att > 0, b => [`${b.cmp}/${b.att}`, String(b.passYds), String(b.passTd), String(b.int || 0)]) },
+          { name: "rushing", keys: ["rushingAttempts", "rushingYards", "rushingTouchdowns"], labels: ["CAR", "YDS", "TD"], athletes: ath(b => b.car > 0, b => [String(b.car), String(b.rushYds), String(b.rushTd || 0)]) },
+          { name: "receiving", keys: ["receptions", "receivingYards", "receivingTouchdowns", "receivingTargets"], labels: ["REC", "YDS", "TD", "TGTS"], athletes: ath(b => b.tgt > 0, b => [String(b.rec), String(b.recYds), String(b.recTd || 0), String(b.tgt)]) } ] };
       }) };
       return out;
     }
@@ -2799,7 +3137,7 @@ const Demo = (() => {
 /* ============================================================================
    APP: UI, run loop, tabs.
    ========================================================================== */
-const VERSION = "v6.1 (9 Nov, odds filter)";
+const VERSION = "v7 (10 Nov, all markets)";
 const App = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -2810,7 +3148,12 @@ const App = (() => {
   const syd = (iso, opts) => new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", ...opts }).format(new Date(iso));
   const kick = iso => syd(iso, { weekday: "short", hour: "numeric", minute: "2-digit" });
   const bookName = b => AU_BOOKS[b] || b;
-  const label = m => MARKETS[m]?.label || m;
+  const label = (m, sp) => marketLabel(m, sp);
+  // "Over 24.5", "Yes", "Buffalo Bills +3.5"
+  // market groups (board filter + settings)
+  const MGROUPS = [["@props", "Player stats"], ["@yn", "Yes / No & scorers"], ["@alt", "Alternate lines"], ["@game", "Game lines & totals"]];
+  const groupOf = (m, sp) => { const s = specFor(sp, m) || {}; return s.kind === "game" ? "@game" : s.alt ? "@alt" : s.kind === "yn" || s.kind === "first" ? "@yn" : "@props"; };
+  const sideText = r => r.line == null ? r.outcome : /spreads/.test(r.market) ? `${r.outcome} ${r.line > 0 ? "+" : ""}${r.line}` : `${r.outcome} ${r.line}`;
 
   const state = { rows: [], matchups: [], injuries: {}, sport: "", book: "", market: "", q: "", sort: "ev", dir: -1, flt: loadFilters(),
                   open: new Set(), sel: new Set(), betSel: new Set(), lastRun: null, running: false, timer: null, diag: [] };
@@ -2838,7 +3181,7 @@ const App = (() => {
     state.running = true; $("#runBtn").disabled = true; $("#runBtn").textContent = "Running…";
     log(`EV Board ${VERSION}`);
     const rows = [], matchups = [], injuries = {};
-    if (!Demo.active && state.estimate && Net.credits() != null && state.estimate > +Net.credits()) {
+    if (!Demo.active && state.estimate && !state.estimateUpper && Net.credits() != null && state.estimate > +Net.credits()) {
       flash(`This refresh may need ~${state.estimate} credits but only ${Net.credits()} are left. Pick one sport, a shorter window or fewer markets.`); }
     Net.resetRunCost();
     try {
@@ -2937,6 +3280,10 @@ const App = (() => {
     if (isFinite(gap) && gap > 0.07) why.push(`model ${pct(gap)} from market`);
     if (r.status === "QUESTIONABLE") why.push("player questionable");
     if (r.market === "h2h") why.push("moneyline model is ESPN's predictor");
+    if (/spreads/.test(r.market)) why.push("line model is ESPN's predictor");
+    if (/totals/.test(r.market)) why.push("totals model: team scoring blended with the market");
+    if (specFor(r.sport, r.market)?.kind === "first") why.push("first-scorer markets: rough model, big bookie margin");
+    if (r.oneSided) why.push(r.est === "main" ? "alt line: fair price worked out from the main line" : "one-sided market: fair price estimated from a typical margin");
     if (r.ev < Settings.get("minEdge")) why.push("below your minimum EV");
     const mv = typeof Lines !== "undefined" ? Lines.movement(r) : null;
     if (mv && mv.toward === -1) why.push(`market moved against this side (${mv.detail})`);
@@ -2975,7 +3322,7 @@ const App = (() => {
   const f1 = v => (isFinite(v) ? (+v).toFixed(1) : "—");
   function detailPanel(r) {
     const H = r.hist, rt = rate(r), mv = typeof Lines !== "undefined" ? Lines.movement(r) : null, sel = new Set(Settings.get("bettable"));
-    const games = H?.last5?.length ? `<table class="mini dt"><thead><tr><th>Date</th><th>Opp</th>${r.sport === "nba" ? "<th class='n'>Min</th>" : ""}<th class="n">${esc(label(r.market))}</th><th></th></tr></thead><tbody>
+    const games = H?.last5?.length ? `<table class="mini dt"><thead><tr><th>Date</th><th>Opp</th>${r.sport === "nba" ? "<th class='n'>Min</th>" : ""}<th class="n">${esc(label(r.market, r.sport))}</th><th></th></tr></thead><tbody>
       ${[...H.last5].reverse().map(g => `<tr><td>${new Date(g.date).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })}</td><td>${g.opp ? (g.home === false ? "@ " : "v ") + esc(g.opp) : "—"}</td>
         ${r.sport === "nba" ? `<td class="n">${f1(g.min)}</td>` : ""}<td class="n"><b>${g.v}</b></td><td class="${g.push ? "" : g.hit ? "pos" : "neg"}">${g.push ? "push" : g.hit ? "✓ hit" : "✗ miss"}</td></tr>`).join("")}</tbody></table>`
       : `<p class="mute small">No recent games found.</p>`;
@@ -3023,7 +3370,7 @@ const App = (() => {
       if (isFinite(oMin) && !(r.bestPrice >= oMin)) return false;
       if (isFinite(oMax) && !(r.bestPrice <= oMax)) return false;
       return (skip === "sport" || !state.sport || r.sport === state.sport) && (!state.book || r.bestBook === state.book) &&
-      (!state.market || r.market === state.market) &&
+      (!state.market || (state.market[0] === "@" ? groupOf(r.market, r.sport) === state.market : r.market === state.market)) &&
       (!state.q || `${r.player} ${r.team} ${r.home} ${r.away}`.toLowerCase().includes(state.q));
     });
   }
@@ -3045,9 +3392,13 @@ const App = (() => {
     $("#sportTabs").innerHTML = [["", "All"], ["nfl", "NFL"], ["nba", "NBA"]].map(([s, l]) =>
       `<button data-sport="${s}" class="${state.sport === s ? "on" : ""}">${l}<span>${cnt(s)}</span></button>`).join("");
     const books = [...new Set(state.rows.map(r => r.bestBook))].sort();
-    const markets = [...new Set(state.rows.map(r => r.market))];
+    const mSport = {}; state.rows.forEach(r => (mSport[r.market] ||= r.sport));
+    const markets = Object.keys(mSport).sort((a, b) => label(a, mSport[a]).localeCompare(label(b, mSport[b])));
     $("#bookSel").innerHTML = `<option value="">All books</option>` + books.map(b => `<option value="${b}" ${state.book === b ? "selected" : ""}>${esc(bookName(b))}</option>`).join("");
-    $("#marketSel").innerHTML = `<option value="">All markets</option>` + markets.map(m => `<option value="${m}" ${state.market === m ? "selected" : ""}>${esc(label(m))}</option>`).join("");
+    const opt = (v, t) => `<option value="${v}" ${state.market === v ? "selected" : ""}>${esc(t)}</option>`;
+    $("#marketSel").innerHTML = opt("", `All markets (${markets.length})`) +
+      `<optgroup label="Groups">${MGROUPS.map(([g, t]) => opt(g, `${t} (${markets.filter(m => groupOf(m, mSport[m]) === g).length})`)).join("")}</optgroup>` +
+      MGROUPS.map(([g, t]) => { const ms = markets.filter(m => groupOf(m, mSport[m]) === g); return ms.length ? `<optgroup label="${t}">${ms.map(m => opt(m, label(m, mSport[m]))).join("")}</optgroup>` : ""; }).join("");
     const key = { tier: r => ({ g: 2, y: 1, r: 0 }[rate(r).t] * 10 + r.ev), ev: r => r.ev, model: r => r.modelProb, market: r => r.marketProb, stake: r => r.stake, kick: r => Date.parse(r.commence),
                   player: r => r.player || r.team, book: r => r.bestBook, proj: r => r.mean, price: r => r.bestNet }[state.sort];
     const rows = filtered().sort((a, b) => { const x = key(a), y = key(b); return (x > y ? 1 : x < y ? -1 : 0) * state.dir; });
@@ -3055,7 +3406,7 @@ const App = (() => {
     const seenP = new Set(), picks = filtered().filter(r => rate(r).t === "g").sort((a, b) => b.ev - a.ev)
       .filter(r => { const k = r.sport + (r.player || r.team); if (seenP.has(k)) return false; seenP.add(k); return true; }).slice(0, 4);
     $("#topPicks").innerHTML = picks.map((r, i) => `<div class="pick"><div class="t">${i === 0 ? "★ Best bet" : "Strong"} · ${r.sport.toUpperCase()}</div>
-      <div class="p">${esc(r.player || r.team)} — ${esc(label(r.market))} ${esc(r.line != null ? `${r.outcome} ${r.line}` : r.outcome)}</div>
+      <div class="p">${esc(r.player || r.team)} — ${esc(label(r.market, r.sport))} ${esc(sideText(r))}</div>
       <div class="m">${esc(r.away)} @ ${esc(r.home)} · ${kick(r.commence)}</div>
       <div class="row2"><span><a class="book" href="${esc(r.bestLink)}" target="_blank" rel="noopener">${esc(bookName(r.bestBook))}</a> <b>${price(r.bestPrice)}</b> · stake ${money(r.stake)}</span><span class="evbig">${spct(r.ev)}</span></div>
       ${r.hist?.last5?.length ? `<div class="row2"><span class="m">Last 5 ${l5Bars(r, 70, 22)} · season avg ${f1(r.hist.season.avg)}${r.hist.career ? ` · career ${f1(r.hist.career.avg)}` : ""}</span></div>` : ""}
@@ -3067,18 +3418,19 @@ const App = (() => {
     }
     if (!rows.length) { $("#boardBody").innerHTML = `<tr><td colspan="15" class="empty">Nothing passes the current filters.${state.flt.tiers.length ? "" : " Tick at least one of Strong, Lean or Avoid."}</td></tr>`; return; }
     const loggedKeys = new Set(Bets.all().map(b => b.trackKey));
-    state.shownKeys = rows.map(r => [r.eventId, r.market, r.player, r.outcome, r.line].join("|"));
+    const total = rows.length, shown = rows.slice(0, state.limit || 300); // drawing thousands of rows at once is slow
+    state.shownKeys = shown.map(r => [r.eventId, r.market, r.player, r.outcome, r.line].join("|"));
     state.rowByKey = Object.fromEntries([...rows, ...picks].map(r => [[r.eventId, r.market, r.player, r.outcome, r.line].join("|"), r]));
-    $("#boardBody").innerHTML = rows.map(r => {
+    $("#boardBody").innerHTML = shown.map(r => {
       const k = [r.eventId, r.market, r.player, r.outcome, r.line].join("|");
-      const side = r.line != null ? `${r.outcome} ${r.line}` : r.outcome;
+      const side = sideText(r);
       const notes = [r.status && r.status !== "ACTIVE" ? `<span class="tag warn">${esc(r.status[0] + r.status.slice(1).toLowerCase())}</span>` : "",
                      ...(r.notes || []).filter(n => n !== "Questionable").map(n => `<span class="tag">${esc(n)}</span>`)].join("");
       const rt = rate(r);
       const main = `<tr class="row ${rt.t}" data-k="${esc(k)}">
         <td class="nw"><input type="checkbox" class="selcb" data-sel="${esc(k)}" ${state.sel.has(k) ? "checked" : ""} aria-label="Select bet"><span class="badge ${rt.t}" title="${esc(rt.why.join(" · "))}">${rt.label}</span> <span class="sp">${r.sport.toUpperCase()}</span></td>
         <td class="who">${esc(r.player || r.team)}${r.player ? `<small>${esc(r.team)}</small>` : ""}</td>
-        <td>${esc(label(r.market))}</td><td class="nw">${esc(side)}</td><td class="nw">${l5Bars(r)}</td>
+        <td>${esc(label(r.market, r.sport))}</td><td class="nw">${esc(side)}</td><td class="nw">${l5Bars(r)}</td>
         <td class="nw"><a href="${esc(r.bestLink)}" target="_blank" rel="noopener" class="book">${esc(bookName(r.bestBook))}</a> <b class="px">${price(r.bestPrice)}</b></td>
         <td class="n">${pct(r.modelProb)}</td><td class="n mute">${pct(r.marketProb)}</td><td class="nw">${moveCell(r)}</td>
         <td class="n ev ${rt.t}">${spct(r.ev)}</td><td class="n">${money(r.stake)}</td>
@@ -3088,7 +3440,7 @@ const App = (() => {
         <td>${loggedKeys.has(Track.keyOf(r)) ? `<button class="logbtn done" data-log="${esc(k)}" title="Already in My bets: click to log another">Logged</button>` : `<button class="logbtn" data-log="${esc(k)}">Log</button>`}</td></tr>`;
       const detail = state.open.has(k) ? `<tr class="detail"><td colspan="15">${detailPanel(r)}</td></tr>` : "";
       return main + detail;
-    }).join("");
+    }).join("") + (total > shown.length ? `<tr><td colspan="15" class="empty">Showing the top ${shown.length} of ${total} by the current sort. <button class="btn sm" id="moreRows">Show ${Math.min(300, total - shown.length)} more</button> <button class="btn sm" id="allRows">Show all</button></td></tr>` : "");
   }
 
   /* ---------------------------------------------------------------- bet log */
@@ -3107,7 +3459,7 @@ const App = (() => {
     $("#dlgBook").innerHTML = books.map(b => { const p = prices.find(x => x.book === b); return `<option value="${b}">${esc(bookName(b))}${p ? ` — ${price(p.price)}` : ""}</option>`; }).join("");
     f.placedAt.value = toLocalInput(nowMs);
     if (row) {
-      $("#betSel").innerHTML = `<b>${esc(row.player || row.team)}</b> · ${esc(label(row.market))} · <b>${esc(row.line != null ? `${row.outcome} ${row.line}` : row.outcome)}</b><br>
+      $("#betSel").innerHTML = `<b>${esc(row.player || row.team)}</b> · ${esc(label(row.market, row.sport))} · <b>${esc(sideText(row))}</b><br>
         <span class="mute">${esc(row.away)} @ ${esc(row.home)} · ${kick(row.commence)} · model ${pct(row.modelProb)} vs market ${pct(row.marketProb)}</span>`;
       f.book.value = row.bestBook; f.odds.value = row.bestPrice; f.stake.value = row.stake > 0 ? row.stake : 10;
     } else { $("#betSel").innerHTML = ""; f.commence.value = toLocalInput(nowMs + 3600e3); f.stake.value = 10; }
@@ -3310,8 +3662,11 @@ const App = (() => {
   function renderSettings() {
     const s = Settings.all();
     $("#setApiKey").value = s.apiKey;
-    $("#setMarkets").innerHTML = Object.entries(SPORTS).map(([k, v]) => `<div style="margin-bottom:6px"><b>${v.label}</b> <span class="chks" style="display:inline-flex">${v.markets.map(m =>
-      `<label class="chk"><input type="checkbox" data-sport="${k}" value="${m}" ${s.markets[k].includes(m) ? "checked" : ""}> ${MARKETS[m].label}${s.badMarkets.includes(m) ? " (not offered)" : ""}</label>`).join("")}</span></div>`).join("");
+    $("#setMarkets").innerHTML = Object.entries(SPORTS).map(([k, v]) => `<div class="mkset"><div class="mkhead"><b>${v.label}</b>
+        <button type="button" class="btn sm" data-mk-all="${k}">All</button><button type="button" class="btn sm" data-mk-none="${k}">None</button>
+        <span class="small mute">${s.markets[k].length} of ${v.markets.length} on</span></div>` +
+      MGROUPS.map(([g, t]) => { const ms = v.markets.filter(m => groupOf(m, k) === g); return ms.length ? `<div class="mkgrp"><span class="small mute">${t}</span><span class="chks">${ms.map(m =>
+        `<label class="chk"><input type="checkbox" data-sport="${k}" value="${m}" ${s.markets[k].includes(m) ? "checked" : ""}> ${marketLabel(m, k)}${s.badMarkets.includes(m) ? " (not offered)" : ""}</label>`).join("")}</span></div>` : ""; }).join("") + `</div>`).join("");
     $("#setBooks").innerHTML = Object.entries(AU_BOOKS).map(([k, v]) => `<label class="chk"><input type="checkbox" value="${k}" ${s.bettable.includes(k) ? "checked" : ""}> ${v}</label>`).join("");
     for (const [id, key, mult] of [["setComm", "betfairCommission", 100], ["setMinEdge", "minEdge", 100], ["setMinBooks", "minBooks", 1], ["setGap", "maxGap", 100],
       ["setWeight", "modelWeight", 1], ["setBankroll", "bankroll", 1], ["setUnit", "unitSize", 1], ["setKelly", "kellyFraction", 100], ["setCap", "kellyCap", 100]]) $("#" + id).value = +(s[key] * mult).toFixed(4);
@@ -3329,9 +3684,13 @@ const App = (() => {
     $("#setEspn").addEventListener("change", e => Settings.set("espn", e.target.checked));
     $("#setWeather").addEventListener("change", e => Settings.set("weather", e.target.checked));
     $("#setTrack").addEventListener("change", e => Settings.set("track", e.target.checked));
+    $("#setMarkets").addEventListener("click", e => {
+      const a = e.target.closest("[data-mk-all]"), n = e.target.closest("[data-mk-none]"); if (!a && !n) return;
+      const k = (a || n).dataset.mkAll || (a || n).dataset.mkNone, mk = { ...Settings.get("markets") };
+      mk[k] = a ? [...SPORTS[k].markets] : []; Settings.set("markets", mk); renderSettings(); updateEstimate(); });
     $("#setMarkets").addEventListener("change", () => {
       const mk = { nfl: [], nba: [] }; document.querySelectorAll("#setMarkets input:checked").forEach(i => mk[i.dataset.sport].push(i.value));
-      Settings.set("markets", mk); updateEstimate(); });
+      Settings.set("markets", mk); renderSettings(); updateEstimate(); });
     $("#setApiKey").addEventListener("change", () => updateEstimate());
     $("#setBooks").addEventListener("change", () => { Settings.set("bettable", [...document.querySelectorAll("#setBooks input:checked")].map(i => i.value)); Model.applyBooks(state.rows); renderBookPicker(); renderBoard(); });
   }
@@ -3368,18 +3727,20 @@ const App = (() => {
       const el = $("#estimate");
       if (!Demo.active && !Settings.get("apiKey")) { el.textContent = "Add API key"; el.className = "chip warn"; return; }
       try {
-        let total = 0; const parts = [];
+        let total = 0, upper = false; const parts = [];
         for (const sport of Settings.get("sports")) {
           const ev = await OddsAPI.events(sport), now = Demo.active ? Demo.clock : Date.now(), H = Settings.get("lookaheadH")[sport];
           const n = ev.filter(e => { const t = Date.parse(e.commence); return t > now && t < now + H * 3600e3; }).length;
-          const m = OddsAPI.marketsFor(sport).length, c = (n ? 3 : 0) + n * m;
-          total += c; parts.push(`${SPORTS[sport].label}: ${n} games × ${m} markets + 3 = ${c}`);
+          const m = OddsAPI.marketsFor(sport).length, seen = parseFloat(localStorage.getItem("evbet.costPerGame." + sport));
+          const per = isFinite(seen) && seen > 0 ? Math.min(Math.ceil(seen), m) : m, c = (n ? 3 : 0) + n * per;
+          if (!(isFinite(seen) && seen > 0)) upper = true;
+          total += c; parts.push(`${SPORTS[sport].label}: ${n} games × ${per}${per < m ? ` (markets with AU odds last refresh, of ${m} ticked)` : " markets"} + 3 = ${c}`);
         }
         const left = Net.credits() != null ? +Net.credits() : null;
-        el.textContent = `≈ ${total} credits / refresh`;
-        el.title = parts.join("\n") + (left != null ? `\n${left} credits left` : "") + "\nUpper bound: The Odds API only charges for markets that return odds.";
+        el.textContent = `${upper ? "up to" : "≈"} ${total} credits / refresh`;
+        el.title = parts.join("\n") + (left != null ? `\n${left} credits left` : "") + "\nThe Odds API only charges for markets that come back with odds, so the real cost is usually lower. After one refresh this uses the actual cost.";
         el.className = "chip" + (left != null && total > left ? " warn" : "");
-        state.estimate = total;
+        state.estimate = total; state.estimateUpper = upper;
       } catch (e) { el.textContent = "≈ ? credits"; el.title = "Couldn't count games: " + e.message; el.className = "chip warn"; }
     }, 300);
   }
@@ -3479,6 +3840,8 @@ const App = (() => {
       if (e.target.closest("a")) return;
       const lb = e.target.closest("[data-log]");
       if (lb) { openBetDialog(state.rowByKey[lb.dataset.log]); return; }
+      if (e.target.id === "moreRows") { state.limit = (state.limit || 300) + 300; renderBoard(); return; }
+      if (e.target.id === "allRows") { state.limit = Infinity; renderBoard(); return; }
       const cb = e.target.closest("[data-sel]");
       if (cb) { cb.checked ? state.sel.add(cb.dataset.sel) : state.sel.delete(cb.dataset.sel); renderSelBar(); return; }
       const tr = e.target.closest("tr.row"); if (!tr) return;
