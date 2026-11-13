@@ -40,6 +40,7 @@ td.ev.y{color:#a87a00}td.ev.r{color:var(--bad)}
 .seg{display:inline-flex;background:var(--chip);border-radius:8px;padding:3px}.seg button{border:0;background:none;padding:5px 12px;border-radius:6px;color:var(--mute);font-weight:600;cursor:pointer}
 input.selcb{margin:0 6px 0 0;vertical-align:-2px;cursor:pointer}
 .lu .k{margin-bottom:4px}.lut{width:100%;border-collapse:collapse}.lut td{padding:3px 6px 3px 0;border-bottom:1px solid var(--line);vertical-align:top}.lut td:first-child{width:34px}.tag.ok{background:var(--g-soft,#e3f4ea);color:var(--g,#1a7f4b)}
+.keys{border-collapse:collapse;margin-bottom:8px;font-size:13px}.keys th,.keys td{padding:5px 10px 5px 0;border-bottom:1px solid var(--line);text-align:left}.keys tr.on td{font-weight:600}.keyadd{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .mkset{margin-bottom:12px}.mkhead{display:flex;gap:8px;align-items:center;margin-bottom:4px}.mkgrp{display:grid;grid-template-columns:150px 1fr;gap:8px;margin:4px 0}.mkgrp .chks{display:flex;flex-wrap:wrap;gap:4px 12px}
 .selbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px;padding:8px 12px;background:var(--acc-soft);border-radius:8px}.selbar[hidden]{display:none}th.cb,td.cb{width:26px;padding-right:0}td.cb input,th.cb input{cursor:pointer}
 .seg.multi button i{margin-right:6px}.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}.seg span{margin-left:5px;font-weight:500;font-size:12px;color:var(--mute)}
@@ -229,7 +230,11 @@ footer{color:var(--mute);font-size:12px;padding:0 24px 30px;max-width:980px}
 </section>
 <section id="tab-settings" hidden>
   <div class="form">
-    <label for="setApiKey">The Odds API key</label><div><input type="password" id="setApiKey" style="width:340px" autocomplete="off"><div class="hint">Stored only in this browser. Region <code>au</code> is used, so one call covers every Australian book. Props cost one credit per market (with odds) per game.</div></div>
+    <label for="newKey">The Odds API keys</label><div>
+      <table class="keys" id="keyTable"><thead><tr><th>Name</th><th>Key</th><th>Credits left</th><th>Used</th><th>Checked</th><th>Status</th><th></th></tr></thead><tbody id="keyBody"></tbody></table>
+      <div class="keyadd"><input type="password" id="newKey" style="width:300px" autocomplete="off" placeholder="Paste a key"><input type="text" id="newKeyLabel" style="width:140px" placeholder="Name (optional)">
+        <button class="btn sm primary" id="addKeyBtn" type="button">Add key</button><button class="btn sm" id="checkKeysBtn" type="button">Check all keys</button></div>
+      <div class="hint">Keys are stored only in this browser. When the key in use runs out of credits (or is rejected), the next key with credits takes over automatically, even mid-refresh. "Check all keys" reads each key's credits for free (no credits used), so a used-up key shows as ready again once its credits reset. Region <code>au</code> is used, so one call covers every Australian book. Props cost one credit per market (with odds) per game.</div></div>
     <label>Markets to fetch</label><div><div id="setMarkets"></div><div class="hint">You're only charged for markets that come back with Australian odds: 1 credit per market per game. Markets no AU bookie offers that day cost nothing. Untick groups you don't bet to save credits. Alternate lines and first-scorer markets often add the most cost.</div></div>
     <label>Bookies you can bet at</label><div><div class="chks" id="setBooks"></div><div class="hint">All AU books feed the fair line; only ticked books can be the "best price". Dabble is on paid Odds API plans only.</div></div>
     <label for="setComm">Betfair commission %</label><div><input type="number" id="setComm" step="0.5"><div class="hint">Your rate on winnings; Betfair prices are netted before comparing.</div></div>
@@ -483,7 +488,7 @@ const SPORTS = {
 const Settings = (() => {
   const KEY = "evbet.settings.v1";
   const defaults = {
-    apiKey: "", sports: ["nfl", "nba"],
+    apiKey: "", apiKeys: [], sports: ["nfl", "nba"],
     bettable: Object.keys(AU_BOOKS).filter(b => b !== "dabble_au"), // dabble_au is paid-plan only on The Odds API
     betfairCommission: 0.05, devig: "multiplicative",
     minEdge: 0.02, minBooks: 2, maxGap: 0.10, modelWeight: 1.0,
@@ -506,6 +511,57 @@ const Settings = (() => {
     set(k, v) { s[k] = v; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} },
     commissions: () => Object.fromEntries(EXCHANGES.map(b => [b, s.betfairCommission])),
   };
+})();
+
+/* ---------------------------------------------------------------- saved Odds API keys
+   Settings.apiKey is the key in use; Settings.apiKeys holds every saved key with what we last saw of it.
+   When a key runs out (0 credits left, or the API answers "quota reached") the next key with credits takes over. */
+const Keys = (() => {
+  const list = () => { const l = Settings.get("apiKeys") || [];
+    const cur = Settings.get("apiKey"); // older versions had one key: bring it into the list
+    if (cur && !l.some(k => k.key === cur)) { l.push({ key: cur, label: `Key ${l.length + 1}`, added: Date.now() }); Settings.set("apiKeys", l); }
+    return l; };
+  const save = l => Settings.set("apiKeys", l);
+  const find = key => list().find(k => k.key === key);
+  const mask = key => key ? `••••${key.slice(-4)}` : "";
+  let onSwitch = () => {};
+  function add(key, label) {
+    key = (key || "").trim(); if (!key) return false;
+    const l = list(); if (l.some(k => k.key === key)) return false;
+    l.push({ key, label: (label || "").trim() || `Key ${l.length + 1}`, added: Date.now() }); save(l);
+    if (!Settings.get("apiKey")) Settings.set("apiKey", key);
+    return true;
+  }
+  function remove(key) {
+    const wasActive = Settings.get("apiKey") === key, n = wasActive ? next(key) : null;
+    save(list().filter(k => k.key !== key));
+    if (wasActive) Settings.set("apiKey", n ? n.key : (Settings.get("apiKeys")[0]?.key || ""));
+  }
+  function rename(key, label) { const l = list(), k = l.find(x => x.key === key); if (k) { k.label = label.trim() || k.label; save(l); } }
+  function use(key) { if (find(key)) Settings.set("apiKey", key); }
+  // remember credits from a response's headers (a used-up key that shows credits again, e.g. a new month, is usable again)
+  function note(key, remaining, used) {
+    const l = list(), k = l.find(x => x.key === key); if (!k) return;
+    if (remaining != null && remaining !== "") { k.remaining = +remaining; k.status = k.remaining > 0 ? "" : "empty"; }
+    if (used != null && used !== "") k.used = +used;
+    k.checked = Date.now(); save(l);
+  }
+  function mark(key, status) { const l = list(), k = l.find(x => x.key === key); if (k) { k.status = status; if (status === "empty") k.remaining = 0; k.checked = Date.now(); save(l); } }
+  // next usable key after `from` (skips used-up and rejected keys)
+  function next(from) {
+    const l = list(), i = l.findIndex(k => k.key === from);
+    const order = [...l.slice(i + 1), ...l.slice(0, Math.max(i, 0))].filter(k => k.key !== from);
+    return order.find(k => !k.status) || null;
+  }
+  // the active key failed or ran out: switch to the next one and say so. Returns the new key or null.
+  function failover(from, why) {
+    mark(from, why);
+    if (Settings.get("apiKey") !== from) return Settings.get("apiKey"); // another request already switched
+    const n = next(from); if (!n) return null;
+    Settings.set("apiKey", n.key); onSwitch(find(from), n, why); return n.key;
+  }
+  const spare = () => list().filter(k => k.key !== Settings.get("apiKey") && !k.status).reduce((s, k) => s + (k.remaining ?? 0), 0);
+  return { list, add, remove, rename, use, note, mark, next, failover, spare, mask, setOnSwitch: f => (onSwitch = f) };
 })();
 
 /* ---------------------------------------------------------------- network */
@@ -543,12 +599,21 @@ const Net = (() => {
         err.blocked = true; err.host = new URL(url).host; throw err;
       }
       calls++;
-      if (odds) { const r = res.headers.get("x-requests-remaining"); if (r !== null) credits = r; const l = res.headers.get("x-requests-last"); if (l !== null) lastCost += +l || 0; }
+      const usedKey = odds ? decodeURIComponent(/apiKey=([^&]+)/.exec(url)?.[1] || "") : "";
+      if (odds) { const r = res.headers.get("x-requests-remaining"); if (r !== null) credits = r; const l = res.headers.get("x-requests-last"); if (l !== null) lastCost += +l || 0;
+        if (usedKey) Keys.note(usedKey, r, res.headers.get("x-requests-used")); }
       if (!res.ok) {
-        let detail = ""; try { detail = (await res.json()).message || ""; } catch (e) {}
+        let detail = "", code = ""; try { const j = await res.json(); detail = j.message || ""; code = j.error_code || ""; } catch (e) {}
+        // key used up or rejected: move to the next saved key and repeat the request with it
+        if (odds && usedKey && res.status === 401) {
+          const nk = Keys.failover(usedKey, /quota|credit|usage/i.test(detail + code) ? "empty" : "invalid");
+          if (nk && nk !== usedKey) return getJSON(url.replace(/apiKey=[^&]+/, "apiKey=" + encodeURIComponent(nk)), { ttl, cacheKey, odds });
+        }
         const e = new Error(`${res.status} ${detail || res.statusText} — ${url.split("?")[0].replace(/^https?:\/\//, "")}`); e.status = res.status; throw e;
       }
       data = await res.json();
+      // that call used the last credit: later calls go to the next key
+      if (odds && usedKey && credits !== null && +credits <= 0) Keys.failover(usedKey, "empty");
     }
     if (ttl) cachePut(key, data, ttl);
     return data;
@@ -611,7 +676,7 @@ const OddsAPI = (() => {
   }
   // Free (no credits): upcoming events, used for the credit estimate
   async function events(sport) {
-    const d = await Net.getJSON(`${BASE}/sports/${SPORTS[sport].odds}/events?apiKey=${encodeURIComponent(Settings.get("apiKey"))}&dateFormat=iso`, { ttl: 5 * 60e3 });
+    const d = await Net.getJSON(`${BASE}/sports/${SPORTS[sport].odds}/events?apiKey=${encodeURIComponent(Settings.get("apiKey"))}&dateFormat=iso`, { ttl: 5 * 60e3, odds: true });
     return d.map(e => ({ id: e.id, commence: e.commence_time, home: e.home_team, away: e.away_team }));
   }
   const marketsFor = sport => (Settings.get("markets")[sport] || SPORTS[sport].markets).filter(m => !Settings.get("badMarkets").includes(m));
@@ -632,8 +697,17 @@ const OddsAPI = (() => {
     }
   }
   // /sports costs no credits: used to validate the key
-  async function check() { return Net.getJSON(`${BASE}/sports?apiKey=${encodeURIComponent(Settings.get("apiKey"))}`, { odds: true }); }
-  return { gameLines, props, normalise, check, events, marketsFor };
+  async function check(key = Settings.get("apiKey")) { return Net.getJSON(`${BASE}/sports?apiKey=${encodeURIComponent(key)}`, { odds: true }); }
+  // check one saved key without switching to it (the /sports call is free and reports the credits left)
+  async function checkKey(key) {
+    const res = await fetch(`${BASE}/sports?apiKey=${encodeURIComponent(key)}`).catch(() => null);
+    if (!res) throw new Error("blocked or offline");
+    if (res.ok) Keys.note(key, res.headers.get("x-requests-remaining"), res.headers.get("x-requests-used"));
+    else { let d = ""; try { const j = await res.json(); d = (j.message || "") + (j.error_code || ""); } catch (e) {}
+      if (res.status === 401) Keys.mark(key, /quota|credit|usage/i.test(d) ? "empty" : "invalid"); }
+    return Keys.list().find(k => k.key === key);
+  }
+  return { gameLines, props, normalise, check, checkKey, events, marketsFor };
 })();
 
 /* ---------------------------------------------------------------- ESPN (unofficial public JSON) */
@@ -3280,7 +3354,7 @@ const Demo = (() => {
 /* ============================================================================
    APP: UI, run loop, tabs.
    ========================================================================== */
-const VERSION = "v8 (13 Nov, win % filter + lineups)";
+const VERSION = "v9 (13 Nov, multiple API keys)";
 const App = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -3321,11 +3395,14 @@ const App = (() => {
   async function run() {
     if (state.running) return;
     if (!Demo.active && !Settings.get("apiKey")) { switchTab("settings"); flash("Add your The Odds API key first (or turn on Demo)."); return; }
+    if (!Demo.active) { // the key in use is marked used up / rejected: start on the next one with credits
+      const cur = Keys.list().find(k => k.key === Settings.get("apiKey")); if (cur?.status) { const n = Keys.next(cur.key); if (n) { Keys.use(n.key); log(`Using ${n.label}: ${cur.label} is ${cur.status === "empty" ? "out of credits" : "rejected"}.`); } } }
     state.running = true; $("#runBtn").disabled = true; $("#runBtn").textContent = "Running…";
     log(`EV Board ${VERSION}`);
     const rows = [], matchups = [], injuries = {};
-    if (!Demo.active && state.estimate && !state.estimateUpper && Net.credits() != null && state.estimate > +Net.credits()) {
-      flash(`This refresh may need ~${state.estimate} credits but only ${Net.credits()} are left. Pick one sport, a shorter window or fewer markets.`); }
+    const credLeft = (() => { const cur = Keys.list().find(k => k.key === Settings.get("apiKey")); const c = cur?.remaining ?? (Net.credits() != null ? +Net.credits() : null); return c == null ? null : c + Keys.spare(); })();
+    if (!Demo.active && state.estimate && !state.estimateUpper && credLeft != null && state.estimate > credLeft) {
+      flash(`This refresh may need ~${state.estimate} credits but only ${credLeft} are left across your keys. Pick one sport, a shorter window or fewer markets.`); }
     Net.resetRunCost();
     try {
       for (const sport of Settings.get("sports")) {
@@ -3814,9 +3891,23 @@ const App = (() => {
   }
 
   /* ---------------------------------------------------------------- settings */
+  function confirmRemove(key) {
+    const k = Keys.list().find(x => x.key === key);
+    return window.confirm ? confirm(`Remove ${k?.label || "this key"} (${Keys.mask(key)}) from this browser?`) : true;
+  }
+  function renderKeys() {
+    const cur = Settings.get("apiKey"), list = Keys.list();
+    const st = k => k.key === cur ? (k.status === "empty" ? `<span class="st st-out">In use · used up</span>` : k.status === "invalid" ? `<span class="st st-out">In use · rejected</span>` : `<span class="st st-probable">In use</span>`)
+      : k.status === "empty" ? `<span class="st st-doubtful">Used up</span>` : k.status === "invalid" ? `<span class="st st-out">Rejected</span>` : `<span class="mute">Spare</span>`;
+    $("#keyBody").innerHTML = list.length ? list.map(k => `<tr data-key="${esc(k.key)}" class="${k.key === cur ? "on" : ""}"><td>${esc(k.label)}</td><td class="mute">${esc(Keys.mask(k.key))}</td>
+      <td class="num">${k.remaining != null ? k.remaining : "—"}</td><td class="num">${k.used != null ? k.used : "—"}</td>
+      <td class="small mute">${k.checked ? syd(new Date(k.checked).toISOString(), { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "never"}</td><td>${st(k)}</td>
+      <td class="nw">${k.key !== cur ? `<button class="btn sm" data-key-act="use" type="button">Use</button> ` : ""}<button class="btn sm" data-key-act="rename" type="button">Rename</button> <button class="btn sm" data-key-act="remove" type="button">Remove</button></td></tr>`).join("")
+      : `<tr><td colspan="7" class="mute">No keys yet. Get a free key at the-odds-api.com and paste it below.</td></tr>`;
+  }
   function renderSettings() {
     const s = Settings.all();
-    $("#setApiKey").value = s.apiKey;
+    renderKeys();
     $("#setMarkets").innerHTML = Object.entries(SPORTS).map(([k, v]) => `<div class="mkset"><div class="mkhead"><b>${v.label}</b>
         <button type="button" class="btn sm" data-mk-all="${k}">All</button><button type="button" class="btn sm" data-mk-none="${k}">None</button>
         <span class="small mute">${s.markets[k].length} of ${v.markets.length} on</span></div>` +
@@ -3833,7 +3924,24 @@ const App = (() => {
     const numMap = { setComm: ["betfairCommission", 100], setMinEdge: ["minEdge", 100], setMinBooks: ["minBooks", 1], setGap: ["maxGap", 100],
       setWeight: ["modelWeight", 1], setBankroll: ["bankroll", 1], setUnit: ["unitSize", 1], setKelly: ["kellyFraction", 100], setCap: ["kellyCap", 100] };
     Object.entries(numMap).forEach(([id, [k, m]]) => $("#" + id).addEventListener("change", e => { const v = parseFloat(e.target.value); if (isFinite(v)) { Settings.set(k, v / m); renderAll(); } }));
-    $("#setApiKey").addEventListener("change", e => Settings.set("apiKey", e.target.value.trim()));
+    $("#addKeyBtn").addEventListener("click", async () => {
+      const k = $("#newKey").value.trim(); if (!k) return;
+      if (!Keys.add(k, $("#newKeyLabel").value)) { flash("That key is already saved."); return; }
+      $("#newKey").value = ""; $("#newKeyLabel").value = ""; renderKeys(); updateEstimate(); $("#welcome").hidden = true;
+      try { await OddsAPI.checkKey(k); } catch (e) {} renderKeys(); });
+    $("#checkKeysBtn").addEventListener("click", async () => {
+      $("#checkKeysBtn").disabled = true;
+      for (const k of Keys.list()) { try { await OddsAPI.checkKey(k.key); } catch (e) { flash("Couldn't reach The Odds API: " + e.message); break; } }
+      // the key in use is used up but another has credits: switch now
+      const cur = Keys.list().find(k => k.key === Settings.get("apiKey")); if (cur?.status) { const n = Keys.next(cur.key); if (n) Keys.use(n.key); }
+      $("#checkKeysBtn").disabled = false; renderKeys(); renderStatus(); });
+    $("#keyBody").addEventListener("click", e => {
+      const b = e.target.closest("[data-key-act]"); if (!b) return;
+      const key = b.closest("tr").dataset.key, act = b.dataset.keyAct;
+      if (act === "use") { Keys.use(key); flash("Now using " + (Keys.list().find(k => k.key === key)?.label || "that key") + "."); }
+      if (act === "remove" && confirmRemove(key)) Keys.remove(key);
+      if (act === "rename") { const t = prompt("Name for this key:", Keys.list().find(k => k.key === key)?.label || ""); if (t != null) Keys.rename(key, t); }
+      renderKeys(); renderStatus(); updateEstimate(); });
     $("#setDevig").addEventListener("change", e => Settings.set("devig", e.target.value));
     $("#setProxy").addEventListener("change", e => Settings.set("corsProxy", e.target.value.trim()));
     $("#setEspn").addEventListener("change", e => Settings.set("espn", e.target.checked));
@@ -3846,7 +3954,6 @@ const App = (() => {
     $("#setMarkets").addEventListener("change", () => {
       const mk = { nfl: [], nba: [] }; document.querySelectorAll("#setMarkets input:checked").forEach(i => mk[i.dataset.sport].push(i.value));
       Settings.set("markets", mk); renderSettings(); updateEstimate(); });
-    $("#setApiKey").addEventListener("change", () => updateEstimate());
     $("#setBooks").addEventListener("change", () => { Settings.set("bettable", [...document.querySelectorAll("#setBooks input:checked")].map(i => i.value)); Model.applyBooks(state.rows); renderBookPicker(); renderBoard(); });
   }
 
@@ -3861,7 +3968,9 @@ const App = (() => {
   function renderStatus() {
     $("#mode").textContent = Demo.active ? "Demo data" : "Live";
     $("#mode").className = "chip " + (Demo.active ? "warn" : "ok");
-    $("#credits").textContent = Demo.active ? "" : Net.credits() !== null ? `${Net.credits()} credits left${Net.runCost() ? ` · last refresh ${Net.runCost()}` : ""}` : "";
+    const ks = Keys.list(), spare = Keys.spare(), cur = ks.find(k => k.key === Settings.get("apiKey"));
+    const left = cur?.remaining ?? Net.credits();
+    $("#credits").textContent = Demo.active ? "" : left != null ? `${left} credits left${ks.length > 1 ? ` on ${cur?.label || "this key"}${(() => { const n = ks.filter(k => k !== cur && !k.status).length; return n ? ` (+${spare} on ${n} spare key${n > 1 ? "s" : ""})` : " (no spare keys with credits)"; })()}` : ""}${Net.runCost() ? ` · last refresh ${Net.runCost()}` : ""}` : "";
     $("#lastRun").textContent = state.lastRun ? "Updated " + syd(state.lastRun, { hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : "";
     $("#demoBtn").textContent = Demo.active ? "Exit demo" : "Try demo";
     $("#welcome").hidden = Demo.active || !!Settings.get("apiKey");
@@ -4010,6 +4119,9 @@ const App = (() => {
     $("#clearBtn").addEventListener("click", () => { if (confirm("Delete all tracked outcomes?")) { Track.clear(); renderTrack(); } });
     $("#clearCacheBtn").addEventListener("click", () => { Net.clearCache(); flash("Cache cleared."); });
     $("#testBtn").addEventListener("click", testConnections);
+    Keys.setOnSwitch((from, to, why) => {
+      const msg = `${from?.label || "Key"} ${why === "empty" ? "ran out of credits" : "was rejected"}, switched to ${to.label}${to.remaining != null ? ` (${to.remaining} credits)` : ""}.`;
+      log(msg); flash(msg); renderKeys(); renderStatus(); });
     if (location.protocol === "file:") $("#fileBanner").hidden = false;
     $("#demoBtn").addEventListener("click", async () => {
       if (Demo.active) { Demo.stop(); state.rows = []; state.matchups = []; state.injuries = {}; state.lastRun = null; renderAll(); return; }
