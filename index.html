@@ -39,6 +39,7 @@ td.ev.y{color:#a87a00}td.ev.r{color:var(--bad)}
 .filters{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .seg{display:inline-flex;background:var(--chip);border-radius:8px;padding:3px}.seg button{border:0;background:none;padding:5px 12px;border-radius:6px;color:var(--mute);font-weight:600;cursor:pointer}
 input.selcb{margin:0 6px 0 0;vertical-align:-2px;cursor:pointer}
+.lu .k{margin-bottom:4px}.lut{width:100%;border-collapse:collapse}.lut td{padding:3px 6px 3px 0;border-bottom:1px solid var(--line);vertical-align:top}.lut td:first-child{width:34px}.tag.ok{background:var(--g-soft,#e3f4ea);color:var(--g,#1a7f4b)}
 .mkset{margin-bottom:12px}.mkhead{display:flex;gap:8px;align-items:center;margin-bottom:4px}.mkgrp{display:grid;grid-template-columns:150px 1fr;gap:8px;margin:4px 0}.mkgrp .chks{display:flex;flex-wrap:wrap;gap:4px 12px}
 .selbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px;padding:8px 12px;background:var(--acc-soft);border-radius:8px}.selbar[hidden]{display:none}th.cb,td.cb{width:26px;padding-right:0}td.cb input,th.cb input{cursor:pointer}
 .seg.multi button i{margin-right:6px}.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}.seg span{margin-left:5px;font-weight:500;font-size:12px;color:var(--mute)}
@@ -145,7 +146,7 @@ footer{color:var(--mute);font-size:12px;padding:0 24px 30px;max-width:980px}
 <div id="flash" hidden></div>
 <div id="progress"></div>
 <nav class="tabs">
-  <button data-tab="board" class="on">EV board</button><button data-tab="bets">My bets</button><button data-tab="matchups">Matchups</button><button data-tab="injuries">Injuries</button>
+  <button data-tab="board" class="on">EV board</button><button data-tab="bets">My bets</button><button data-tab="matchups">Matchups &amp; lineups</button><button data-tab="injuries">Injuries</button>
   <button data-tab="track">Tracking &amp; backtest</button><button data-tab="settings">Settings</button><button data-tab="log">Log</button>
 </nav>
 <main>
@@ -163,6 +164,7 @@ footer{color:var(--mute);font-size:12px;padding:0 24px 30px;max-width:980px}
     <div class="seg multi" id="tierTabs" title="Tick any mix of ratings"></div>
     <select id="l5Sel" title="How many of the player's last 5 games cleared today's line for this side"></select>
     <label class="f" title="Best available price (decimal odds), e.g. 1.60 to 2.00">Odds $ <input type="number" id="oddsMin" min="1" step="0.05" placeholder="1.60"> to <input type="number" id="oddsMax" min="1" step="0.05" placeholder="2.00"></label>
+    <label class="f" title="The model's chance this bet wins (the Model % column)">Win % <input type="number" id="winMin" min="0" max="100" step="5" placeholder="min"> to <input type="number" id="winMax" min="0" max="100" step="5" placeholder="max"></label>
     <button class="btn sm" id="fltReset" type="button" hidden>Reset filters</button>
   </div>
   <div class="selbar" id="selBar" hidden><b id="selCount"></b><button class="btn primary sm" id="selCopy">Copy for Excel</button>
@@ -748,14 +750,48 @@ const ESPN = (() => {
 
   async function predictor(sport, espnId) { // ESPN Analytics matchup predictor (FPI / BPI)
     try {
-      const d = await Net.getJSON(`${SITE}/${SPORTS[sport].espn}/summary?event=${espnId}`, { ttl: 30 * 60e3 });
+      const d = await Net.getJSON(`${SITE}/${SPORTS[sport].espn}/summary?event=${espnId}`, { ttl: 10 * 60e3 });
       const p = d?.predictor;
       const h = parseFloat(p?.homeTeam?.gameProjection), a = parseFloat(p?.awayTeam?.gameProjection);
       const out = { homeWin: isFinite(h) ? h / 100 : (isFinite(a) ? 1 - a / 100 : NaN) };
       // last-five form and season series where present
       out.lastFive = (d?.lastFiveGames || []).map(t => ({ team: t.team?.displayName, results: (t.events || []).map(e => e.gameResult).join("") }));
+      out.lineup = releasedLineup(d);
       return out;
-    } catch (e) { return { homeWin: NaN, lastFive: [] }; }
+    } catch (e) { return { homeWin: NaN, lastFive: [], lineup: {} }; }
+  }
+  // Starters ESPN has published for this game (NBA ~30 min before tip, NFL with the inactives ~90 min before kick-off).
+  // Read from the summary's rosters list or, once the game is under way, its box score.
+  function releasedLineup(d) {
+    const out = {};
+    for (const t of d?.rosters || []) {
+      const tid = String(t.team?.id || ""), list = (t.roster || []).filter(r => r.starter && r.active !== false);
+      if (tid && list.length) out[tid] = { source: "ESPN", players: list.map(r => ({ id: String(r.athlete?.id || ""), name: r.athlete?.displayName || "", pos: r.position?.abbreviation || r.athlete?.position?.abbreviation || "" })) };
+      const inactive = (t.roster || []).filter(r => r.active === false).map(r => r.athlete?.displayName).filter(Boolean);
+      if (tid && inactive.length) (out[tid] ||= { source: "ESPN", players: [] }).inactive = inactive;
+    }
+    for (const t of d?.boxscore?.players || []) {
+      const tid = String(t.team?.id || ""); if (!tid || out[tid]?.players?.length) continue;
+      const seen = new Set(), list = [];
+      for (const cat of t.statistics || []) for (const a of cat.athletes || []) {
+        const id = String(a.athlete?.id || ""); if (!a.starter || !id || seen.has(id)) continue;
+        seen.add(id); list.push({ id, name: a.athlete?.displayName || "", pos: a.athlete?.position?.abbreviation || "" });
+      }
+      if (list.length) out[tid] = { source: "ESPN box score", players: list };
+    }
+    return out;
+  }
+  // Team depth chart: [{ slot, pos, players: [{ id, name }] }] in ESPN's order (starter first). NFL uses the offence chart.
+  async function depthChart(sport, teamId) {
+    try {
+      const d = await Net.getJSON(`${SITE}/${SPORTS[sport].espn}/teams/${teamId}/depthcharts`, { ttl: 6 * H, retries: 0 });
+      const charts = d?.depthchart || d?.depthCharts || d?.items || [];
+      const chart = charts.find(c => !/defen|special|kick/i.test(c.name || "")) || charts[0];
+      if (!chart?.positions) return [];
+      return Object.entries(chart.positions).map(([slot, p]) => ({ slot, pos: (p.position?.abbreviation || slot).toUpperCase(),
+        players: (p.athletes || []).map(a => ({ id: String(a.id || a.athlete?.id || ""), name: a.displayName || a.athlete?.displayName || "" })).filter(a => a.name) }))
+        .filter(x => x.players.length);
+    } catch (e) { return []; }
   }
 
   async function standings(sport) {
@@ -858,6 +894,7 @@ const ESPN = (() => {
           const id = String(a.athlete?.id || ""); if (!id) continue;
           const L = lines[id] ||= { teamId: String(team.team?.id || ""), name: a.athlete?.displayName, position: a.athlete?.position?.abbreviation || "", stats: {}, dnp: false };
           if (!L.position && a.athlete?.position?.abbreviation) L.position = a.athlete.position.abbreviation;
+          if (a.starter) L.starter = true;
           if (a.didNotPlay || !a.stats || !a.stats.length) { if (sport === "nba") L.dnp = true; continue; }
           for (const [k, cands] of Object.entries(BOX_KEYS[sport])) {
             let i = -1; for (const c of cands) { i = keys.indexOf(c); if (i < 0) i = labels.indexOf(c); if (i >= 0) break; }
@@ -971,7 +1008,7 @@ const ESPN = (() => {
     } catch (e) { return null; }
   }
 
-  return { teams, injuries, roster, scoreboard, predictor, standings, gamelog, parseGamelog, normStatus,
+  return { teams, injuries, roster, scoreboard, predictor, releasedLineup, depthChart, standings, gamelog, parseGamelog, normStatus,
            boxscore: boxscoreCached, parseBoxscore, teamSchedule, teamGameLogs, teamBoxes, career, parseCareer };
 })();
 
@@ -1408,6 +1445,85 @@ const Model = (() => {
     return { mean: (lo + hi) / 2, sd: proj.sd, family: proj.family, nBooks: main.nBooks };
   }
 
+  /* ---------------------------------------------------------------- lineups */
+  // slots shown per sport (NFL: the offence's skill positions)
+  const LINEUP_SLOTS = { nba: ["PG", "SG", "SF", "PF", "C"], nfl: ["QB", "RB", "WR", "WR", "WR", "TE"] };
+  const posGroup = (sport, pos) => { pos = (pos || "").toUpperCase();
+    if (sport === "nba") return /C/.test(pos) && !/G/.test(pos) ? "C" : /F/.test(pos) ? (pos === "SF" ? "SF" : pos === "PF" ? "PF" : "F") : /G/.test(pos) ? (pos === "PG" ? "PG" : pos === "SG" ? "SG" : "G") : pos;
+    return pos === "FB" ? "RB" : pos; };
+  async function buildLineup(sport, c, sd, tid, season, injFor) {
+    const teamKey = sd === "home" ? c.hk : c.ak, roster = c.roster?.[sd] || [];
+    const status = (id, name) => { const i = injFor(id, Names.norm(name || ""), teamKey); return i ? i.status : "ACTIVE"; };
+    const isOut = (id, name) => ["OUT", "DOUBTFUL"].includes(status(id, name));
+    const tag = p => ({ ...p, status: status(p.id, p.name) });
+    // 1. released by ESPN (game-day starters)
+    const rel = c.pred?.lineup?.[tid];
+    if (rel?.players?.length >= (sport === "nba" ? 5 : 3)) {
+      const pl = sport === "nfl" ? rel.players.filter(p => /QB|RB|WR|TE|FB/.test(p.pos)) : rel.players;
+      return { source: "released", label: "Confirmed by ESPN", players: pl.map(p => ({ ...tag(p), slot: posGroup(sport, p.pos) || p.pos })), inactive: rel.inactive || [] };
+    }
+    // recent box scores: who started and how much they played
+    const boxes = await ESPN.teamBoxes(sport, tid, season, c.event.commence, sport === "nba" ? 5 : 3).catch(() => []);
+    const use = {};
+    boxes.forEach((b, gi) => { for (const [id, L] of Object.entries(b.lines || {})) {
+      if (L.teamId && L.teamId !== String(tid)) continue;
+      const u = use[id] ||= { id, name: L.name, pos: L.position, starts: 0, min: 0, vol: 0, games: 0, last: -1 };
+      if (L.dnp) continue; u.games++; u.last = Math.max(u.last, gi);
+      if (L.starter) u.starts++;
+      u.min += L.stats.min || 0; u.vol += (L.stats.att || 0) + (L.stats.car || 0) + (L.stats.tgt || 0);
+    } });
+    const avgMin = id => use[id]?.games ? use[id].min / use[id].games : NaN;
+    // 2. ESPN depth chart
+    const dc = await ESPN.depthChart(sport, tid);
+    const players = [], used = new Set();
+    const pushP = (slot, p, replaced) => { used.add(p.id); players.push({ ...tag(p), slot, replacing: replaced?.name || "", replacingStatus: replaced?.status || "", avgMin: avgMin(p.id) }); };
+    if (dc.length) {
+      const bySlot = {};
+      dc.forEach(d => (bySlot[posGroup(sport, d.pos)] ||= []).push(d));
+      const take = { };
+      for (const slot of LINEUP_SLOTS[sport]) {
+        const groups = bySlot[slot] || (sport === "nba" ? bySlot[slot[1] === "G" ? "G" : slot === "C" ? "C" : "F"] : null) || [];
+        // several WR slots on NFL charts (WR1/WR2/WR3): one player per slot; otherwise walk down one slot
+        const i = take[slot] = (take[slot] || 0) + 1, chain = groups.length >= i ? groups[i - 1].players : (groups[0]?.players || []).slice(i - 1);
+        let first = chain.find(p => !used.has(p.id)); if (!first) continue;
+        if (isOut(first.id, first.name)) {
+          // next healthy player on this slot, else anyone else listed at the position, else the roster
+          const sub = chain.find(p => !used.has(p.id) && !isOut(p.id, p.name))
+            || groups.flatMap(g => g.players).find(p => !used.has(p.id) && p.id !== first.id && !isOut(p.id, p.name) && !players.some(x => x.id === p.id) && !dc.some(d => posGroup(sport, d.pos) === slot && d.players[0]?.id === p.id))
+            || roster.filter(r => posGroup(sport, r.position) === slot && !used.has(r.athleteId) && r.athleteId !== first.id && !isOut(r.athleteId, r.player) && !dc.some(d => d.players[0]?.id === r.athleteId))
+                .map(r => ({ id: r.athleteId, name: r.player })).sort((a, b) => (use[b.id]?.vol || use[b.id]?.min || 0) - (use[a.id]?.vol || use[a.id]?.min || 0))[0];
+          if (sub) { pushP(slot, sub, tag(first)); continue; }
+        }
+        pushP(slot, first);
+      }
+      if (players.length >= (sport === "nba" ? 4 : 3)) return { source: "depth", label: "Predicted · ESPN depth chart", players };
+      players.length = 0; used.clear();
+    }
+    // 3. recent starts (NBA) / recent usage (NFL)
+    const pool = Object.values(use).filter(u => u.games);
+    if (!pool.length) return null;
+    if (sport === "nba") {
+      const ranked = pool.sort((a, b) => b.starts - a.starts || b.min - a.min);
+      const starters = ranked.filter(u => u.starts >= 2).slice(0, 5);
+      const bench = ranked.filter(u => !starters.includes(u) && !isOut(u.id, u.name)).sort((a, b) => b.min / b.games - a.min / a.games);
+      for (const s of starters) {
+        if (isOut(s.id, s.name)) { const same = bench.find(b => !used.has(b.id) && posGroup(sport, b.pos)[0] === posGroup(sport, s.pos)[0]) || bench.find(b => !used.has(b.id));
+          if (same) { pushP(posGroup(sport, same.pos), same, tag(s)); continue; } }
+        pushP(posGroup(sport, s.pos), s);
+      }
+      const ord = { PG: 0, G: 1, SG: 2, SF: 3, F: 4, PF: 5, C: 6 };
+      players.sort((a, b) => (ord[a.slot] ?? 9) - (ord[b.slot] ?? 9));
+      return { source: "recent", label: `Predicted · starters in the last ${boxes.length} games`, players };
+    }
+    for (const slot of LINEUP_SLOTS.nfl) {
+      const cands = pool.filter(u => posGroup(sport, u.pos) === slot && !used.has(u.id)).sort((a, b) => b.vol / b.games - a.vol / a.games);
+      const first = cands[0]; if (!first) continue;
+      if (isOut(first.id, first.name)) { const sub = cands.find(u => !isOut(u.id, u.name)); if (sub) { pushP(slot, sub, tag(first)); continue; } }
+      pushP(slot, first);
+    }
+    return { source: "recent", label: `Predicted · usage in the last ${boxes.length} games`, players };
+  }
+
   /* ---------------------------------------------------------------- helpers */
   const etDate = (iso, offsetDays = 0) => {
     const d = new Date(Date.parse(iso) + offsetDays * 864e5);
@@ -1611,6 +1727,17 @@ const Model = (() => {
       } catch (e) { log("  matchup data failed: " + e.message); }
     }
 
+    // ---- lineups: released by ESPN if available, otherwise predicted (depth chart, else recent starts / usage) minus injuries
+    if (Settings.get("espn")) {
+      log(`${S.label}: lineups…`);
+      await Net.pool(ctxs, async c => { c.lineups = {};
+        for (const sd of ["home", "away"]) {
+          const tid = sd === "home" ? c.homeId : c.awayId; if (!tid) continue;
+          try { c.lineups[sd] = await buildLineup(sport, c, sd, tid, season, injFor); } catch (e) { c.lineups[sd] = null; }
+        }
+      }, 3);
+    }
+
     // ---- career averages for prop players (season-by-season + all time)
     const careers = {};
     if (Settings.get("espn")) {
@@ -1718,7 +1845,7 @@ const Model = (() => {
     }
     const matchups = ctxs.map(c => ({
       sport, event: c.event, espnEv: c.espnEv, spreadHome: c.spreadHome, total: c.total, pred: c.pred, b2b: c.b2b, weather: c.weather,
-      indoor: c.indoor, out: c.outPlayers, vacated: c.vacated,
+      indoor: c.indoor, out: c.outPlayers, vacated: c.vacated, lineups: c.lineups,
       marketHomeProb: Core.median((() => { const out = []; const byBook = {}; c.quotes.filter(q => q.market === "h2h").forEach(q => (byBook[q.book] ||= []).push(q));
         Object.values(byBook).forEach(b => { if (b.length === 2) { const f = Core.devig(b.map(q => 1 / q.price)); b.forEach((q, i) => { if (Names.teamKey(q.outcome) === c.hk) out.push(f[i]); }); } }); return out; })()),
       injuries: injuries.filter(i => i.teamKey === c.hk || i.teamKey === c.ak),
@@ -1794,7 +1921,7 @@ const Model = (() => {
     };
   }
 
-  return { runSport, project, projectNBA, projectNFL, outcomeProb, discreteOU, fillOneSided, impliedMean, etDate, espnSeason, matchPlayer, probit, applyBooks, statValue };
+  return { runSport, buildLineup, project, projectNBA, projectNFL, outcomeProb, discreteOU, fillOneSided, impliedMean, etDate, espnSeason, matchPlayer, probit, applyBooks, statValue };
 })();
 
 /* ============================================================================
@@ -3051,6 +3178,16 @@ const Demo = (() => {
     if ((m = /\/athletes\/(\d+)\/stats/.exec(url))) return careerFor(sport, m[1]);
     if ((m = /\/athletes\/(\d+)\/gamelog/.exec(url))) { const season = /season=(\d+)/.exec(url)?.[1]; return season && +season < Model.espnSeason(sport, iso(api.clock)) ? { names: [], events: {}, seasonTypes: [] } : gamelogFor(sport, m[1]); }
     if (/\/standings/.test(url)) return standingsFor(sport);
+    if ((m = /\/teams\/(\d+)\/depthcharts/.exec(url))) {
+      if (sport === "nba") throw Object.assign(new Error("HTTP 404"), { status: 404 }); // NBA falls back to recent starters
+      const tp = W.players.filter(p => p.team === m[1]), at = p => ({ id: p.id, displayName: p.name });
+      const wr = tp.filter(p => p.pos === "WR");
+      return { depthchart: [{ name: "3WR 1TE", positions: { qb: { position: { abbreviation: "QB" }, athletes: tp.filter(p => p.pos === "QB").map(at) },
+        rb: { position: { abbreviation: "RB" }, athletes: tp.filter(p => p.pos === "RB").map(at) },
+        wr1: { position: { abbreviation: "WR" }, athletes: wr.slice(0, 1).concat(wr.slice(3)).map(at) }, wr2: { position: { abbreviation: "WR" }, athletes: wr.slice(1, 2).map(at) },
+        wr3: { position: { abbreviation: "WR" }, athletes: wr.slice(2, 3).map(at) }, te: { position: { abbreviation: "TE" }, athletes: tp.filter(p => p.pos === "TE").map(at) } } },
+        { name: "Base 4-3 D", positions: {} }] };
+    }
     if ((m = /\/teams\/(\d+)\/roster/.exec(url))) {
       const athletes = W.players.filter(p => p.team === m[1]).map(p => ({ id: p.id, displayName: p.name, fullName: p.name, position: { abbreviation: p.pos } }));
       return sport === "nfl" ? { athletes: [{ position: "offense", items: athletes }] } : { athletes };
@@ -3079,11 +3216,17 @@ const Demo = (() => {
       const ph = Core.normCdf(diff + 2.5 * N("espn" + g.id), 0, sport === "nba" ? 12 : 13.5);
       const out = { header: { id: g.id, competitions: [{ id: g.id, date: iso(g.t), status: { type: { completed: played(g), state: played(g) ? "post" : "pre" } } }] },
         predictor: { homeTeam: { gameProjection: (ph * 100).toFixed(1) }, awayTeam: { gameProjection: ((1 - ph) * 100).toFixed(1) } } };
+      // NBA starters are "released" for games tipping off within 12 hours
+      if (sport === "nba" && !played(g) && g.t - api.clock < 12 * 3600e3) out.rosters = [g.home, g.away].map(t => {
+        const tp = W.players.filter(p => p.team === t.id), out_ = new Set(W.injuries.filter(([q, st]) => /out/i.test(st)).map(([q]) => q.id));
+        const starters = tp.filter(p => !out_.has(p.id)).slice(0, 5);
+        return { team: { id: t.id }, roster: tp.map(p => ({ athlete: { id: p.id, displayName: p.name, position: { abbreviation: p.pos } }, position: { abbreviation: p.pos },
+          starter: starters.includes(p), active: !out_.has(p.id) })) }; });
       if (played(g)) out.boxscore = { players: [g.home, g.away].map(t => {
         const roster = W.players.filter(p => p.team === t.id);
         if (sport === "nba") return { team: { id: t.id }, statistics: [{ keys: ["minutes", "fieldGoalsMade-fieldGoalsAttempted", "threePointFieldGoalsMade-threePointFieldGoalsAttempted", "freeThrowsMade-freeThrowsAttempted", "rebounds", "assists", "steals", "blocks", "turnovers", "points"],
           labels: ["MIN", "FG", "3PT", "FT", "REB", "AST", "STL", "BLK", "TO", "PTS"], athletes: roster.map(p => { const b = g.box[p.id];
-            return b ? { athlete: { id: p.id, displayName: p.name, position: { abbreviation: p.pos } }, stats: [String(b.min), `${b.fgm}-${b.fgm * 2 + 2}`, `${b.fg3}-${b.fg3 * 2 + 1}`, `${b.ftm}-${b.ftm + 1}`, String(b.reb), String(b.ast), String(b.stl ?? 1), String(b.blk ?? 0), String(b.tov ?? 2), String(b.pts)] }
+            return b ? { athlete: { id: p.id, displayName: p.name, position: { abbreviation: p.pos } }, starter: roster.indexOf(p) < 5, stats: [String(b.min), `${b.fgm}-${b.fgm * 2 + 2}`, `${b.fg3}-${b.fg3 * 2 + 1}`, `${b.ftm}-${b.ftm + 1}`, String(b.reb), String(b.ast), String(b.stl ?? 1), String(b.blk ?? 0), String(b.tov ?? 2), String(b.pts)] }
                      : { athlete: { id: p.id, displayName: p.name, position: { abbreviation: p.pos } }, stats: [], didNotPlay: true }; }) }] };
         const ath = (f, mk) => roster.filter(p => g.box[p.id] && f(g.box[p.id])).map(p => ({ athlete: { id: p.id, displayName: p.name, position: { abbreviation: p.pos } }, stats: mk(g.box[p.id]) }));
         return { team: { id: t.id }, statistics: [
@@ -3137,7 +3280,7 @@ const Demo = (() => {
 /* ============================================================================
    APP: UI, run loop, tabs.
    ========================================================================== */
-const VERSION = "v7 (10 Nov, all markets)";
+const VERSION = "v8 (13 Nov, win % filter + lineups)";
 const App = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -3160,7 +3303,7 @@ const App = (() => {
 
   /* ---------------------------------------------------------------- board filters (kept between visits) */
   function loadFilters() {
-    const d = { tiers: ["g", "y"], l5: "", oddsMin: "", oddsMax: "" };
+    const d = { tiers: ["g", "y"], l5: "", oddsMin: "", oddsMax: "", winMin: "", winMax: "" };
     try { return Object.assign(d, JSON.parse(localStorage.getItem("evbet.filters.v1") || "{}")); } catch (e) { return d; }
   }
   function saveFilters() { try { localStorage.setItem("evbet.filters.v1", JSON.stringify(state.flt)); } catch (e) {} }
@@ -3358,7 +3501,7 @@ const App = (() => {
   // skip: name of one filter to ignore (used for the counts shown on that filter's buttons)
   function filtered(skip) {
     const F = state.flt, tiers = new Set(F.tiers), l5 = L5_OPTS[F.l5] || L5_OPTS[""];
-    const oMin = parseFloat(F.oddsMin), oMax = parseFloat(F.oddsMax);
+    const oMin = parseFloat(F.oddsMin), oMax = parseFloat(F.oddsMax), wMin = parseFloat(F.winMin) / 100, wMax = parseFloat(F.winMax) / 100;
     const minEdge = Settings.get("minEdge"), minBooks = Settings.get("minBooks"), gap = Settings.get("maxGap");
     return state.rows.filter(r => {
       if (r.noBook) return false;
@@ -3369,6 +3512,8 @@ const App = (() => {
       if (F.l5 && skip !== "l5") { const h = l5Hits(r); if (h == null || !l5(h)) return false; }
       if (isFinite(oMin) && !(r.bestPrice >= oMin)) return false;
       if (isFinite(oMax) && !(r.bestPrice <= oMax)) return false;
+      if (isFinite(wMin) && !(r.modelProb >= wMin)) return false;
+      if (isFinite(wMax) && !(r.modelProb <= wMax)) return false;
       return (skip === "sport" || !state.sport || r.sport === state.sport) && (!state.book || r.bestBook === state.book) &&
       (!state.market || (state.market[0] === "@" ? groupOf(r.market, r.sport) === state.market : r.market === state.market)) &&
       (!state.q || `${r.player} ${r.team} ${r.home} ${r.away}`.toLowerCase().includes(state.q));
@@ -3381,7 +3526,8 @@ const App = (() => {
     $("#l5Sel").innerHTML = Object.keys(L5_OPTS).map(k => `<option value="${k}" ${F.l5 === k ? "selected" : ""}>${lab[k]}${k ? ` (${l5base.filter(r => { const h = l5Hits(r); return h != null && L5_OPTS[k](h); }).length})` : ""}</option>`).join("");
     if (document.activeElement !== $("#oddsMin")) $("#oddsMin").value = F.oddsMin;
     if (document.activeElement !== $("#oddsMax")) $("#oddsMax").value = F.oddsMax;
-    const active = F.l5 || F.oddsMin !== "" || F.oddsMax !== "" || F.tiers.join() !== "g,y";
+    for (const id of ["winMin", "winMax"]) if (document.activeElement !== $("#" + id)) $("#" + id).value = F[id];
+    const active = F.l5 || F.oddsMin !== "" || F.oddsMax !== "" || F.winMin !== "" || F.winMax !== "" || F.tiers.join() !== "g,y";
     $("#fltReset").hidden = !active;
   }
   function renderBoard() { state.shownKeys = []; renderBoardInner(); renderSelBar(); }
@@ -3599,6 +3745,13 @@ const App = (() => {
         .slice(0, 8).map(i => `<li><span class="st st-${i.status.toLowerCase()}">${esc(i.statusRaw || i.status)}</span> ${esc(i.player)} <small>${esc(i.position)} ${esc(i.injury)}</small></li>`).join("") || `<li class="mute">No injuries listed</li>`;
       const sp = isFinite(m.spreadHome) ? `${e.home.split(" ").pop()} ${m.spreadHome > 0 ? "+" : ""}${m.spreadHome}` : "—";
       const w = m.weather ? `${Math.round(m.weather.temp)}°F · wind ${Math.round(m.weather.wind)}mph · rain ${m.weather.precip}%` : (m.indoor ? "Indoor" : "");
+      const lineup = s => { const L = m.lineups?.[s]; const team = s === "home" ? e.home : e.away;
+        if (!L || !L.players?.length) return `<div class="lu"><div class="k">${esc(team)}</div><p class="small mute">No lineup data yet.</p></div>`;
+        return `<div class="lu"><div class="k">${esc(team)} <span class="tag ${L.source === "released" ? "ok" : "mute"}">${esc(L.label)}</span></div>
+          <table class="lut">${L.players.map(p => `<tr><td class="mute">${esc(p.slot || "")}</td><td>${esc(p.name)}${p.status && p.status !== "ACTIVE" ? ` <span class="st st-${p.status.toLowerCase()}">${esc(p.status)}</span>` : ""}
+            ${p.replacing ? `<div class="small mute">in for ${esc(p.replacing)} (${esc((p.replacingStatus || "out").toLowerCase())})</div>` : ""}</td>
+            <td class="num mute small">${isFinite(p.avgMin) && m.sport === "nba" ? `${Math.round(p.avgMin)} min` : ""}</td></tr>`).join("")}</table>
+          ${L.inactive?.length ? `<div class="small mute">Inactive: ${esc(L.inactive.join(", "))}</div>` : ""}</div>`; };
       const vac = s => m.vacated?.[s]?.names?.length ? `<div class="small">Vacated: ${esc(m.vacated[s].names.join(", "))}</div>` : "";
       return `<article class="card">
         <header><span class="sp">${m.sport.toUpperCase()}</span> <b>${esc(e.away)}</b> @ <b>${esc(e.home)}</b>
@@ -3613,6 +3766,8 @@ const App = (() => {
           <div><div class="k">${esc(e.away)} ${ev?.away.record ? `<span class="mute">(${esc(ev.away.record)})</span>` : ""} ${m.b2b?.away ? '<span class="tag warn">B2B</span>' : ""}</div><ul>${outList("away")}</ul>${vac("away")}</div>
           <div><div class="k">${esc(e.home)} ${ev?.home.record ? `<span class="mute">(${esc(ev.home.record)})</span>` : ""} ${m.b2b?.home ? '<span class="tag warn">B2B</span>' : ""}</div><ul>${outList("home")}</ul>${vac("home")}</div>
         </div>
+        <div class="k" style="margin-top:10px">Starting lineups${m.sport === "nfl" ? " (offence)" : ""}</div>
+        <div class="mrow two">${lineup("away")}${lineup("home")}</div>
         ${!ev ? `<div class="small mute">No matching ESPN event found.</div>` : ""}
       </article>`;
     }).join("");
@@ -3828,8 +3983,8 @@ const App = (() => {
     $("#betCopyBtn").addEventListener("click", async () => { const list = state.betSel.size ? Bets.all().filter(b => state.betSel.has(b.id)) : (state.betShown || []);
       if (await copyBets([...list].sort((a, b) => a.placedAt - b.placedAt))) { state.betSel.clear(); renderBets(); } });
     $("#l5Sel").addEventListener("change", e => { state.flt.l5 = e.target.value; saveFilters(); renderBoard(); });
-    for (const id of ["oddsMin", "oddsMax"]) $("#" + id).addEventListener("input", e => { state.flt[id] = e.target.value.trim(); saveFilters(); renderBoard(); });
-    $("#fltReset").addEventListener("click", () => { state.flt = { tiers: ["g", "y"], l5: "", oddsMin: "", oddsMax: "" }; saveFilters(); renderBoard(); });
+    for (const id of ["oddsMin", "oddsMax", "winMin", "winMax"]) $("#" + id).addEventListener("input", e => { state.flt[id] = e.target.value.trim(); saveFilters(); renderBoard(); });
+    $("#fltReset").addEventListener("click", () => { state.flt = { tiers: ["g", "y"], l5: "", oddsMin: "", oddsMax: "", winMin: "", winMax: "" }; saveFilters(); renderBoard(); });
     renderBookPicker();
     $("#bookPickBtn").addEventListener("click", e => { e.stopPropagation(); $("#bookPick").classList.toggle("open"); });
     document.addEventListener("click", e => { if (!e.target.closest("#bookPick")) $("#bookPick").classList.remove("open"); });
