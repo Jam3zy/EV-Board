@@ -1435,7 +1435,7 @@ const Model = (() => {
   function project(sport, p, market, ctx) {
     const spec = specFor(sport, market); if (!spec) return null;
     // a stat column ESPN didn't send would otherwise read as 0 every game (fake Unders): skip that market
-    if (p.missing?.length && (spec.stats || []).some(k => p.missing.includes(k))) return null;
+    if (p.missing?.length && (p.missing.includes("all") || (spec.stats || []).some(k => p.missing.includes(k)))) return null;
     if (spec.alt) return project(sport, p, spec.alt, ctx);
     if (spec.model === "nba") return sport === "nba" ? projectNBA(p, market, ctx) : null;
     if (spec.model === "vol") return projectNFL(p, market, ctx);
