@@ -931,7 +931,9 @@ const ESPN = (() => {
     // NFL players only have the categories for their position, so only the NBA basics are "required"
     const core = sport === "nba" ? ["min", "pts", "reb", "ast", "fg3"] : Object.keys(idx);
     const found = core.filter(k => idx[k] >= 0).length;
-    return { games, fieldsFound: sport === "nba" ? found : (found ? 1 : 0), fieldsWanted: sport === "nba" ? core.length : 1 };
+    // columns we look for but couldn't find (NBA logs should have all of them; NFL logs only carry the player's own categories)
+    const missing = sport === "nba" ? Object.keys(idx).filter(k => idx[k] < 0) : (found ? [] : ["all"]);
+    return { games, fieldsFound: sport === "nba" ? found : (found ? 1 : 0), fieldsWanted: sport === "nba" ? core.length : 1, missing };
   }
 
   async function gamelog(sport, athleteId, season) {
@@ -1432,6 +1434,8 @@ const Model = (() => {
   // one entry point for every player market
   function project(sport, p, market, ctx) {
     const spec = specFor(sport, market); if (!spec) return null;
+    // a stat column ESPN didn't send would otherwise read as 0 every game (fake Unders): skip that market
+    if (p.missing?.length && (spec.stats || []).some(k => p.missing.includes(k))) return null;
     if (spec.alt) return project(sport, p, spec.alt, ctx);
     if (spec.model === "nba") return sport === "nba" ? projectNBA(p, market, ctx) : null;
     if (spec.model === "vol") return projectNFL(p, market, ctx);
@@ -1717,7 +1721,8 @@ const Model = (() => {
     ctxs.forEach(c => ["home", "away"].forEach(sd => c.outPlayers?.[sd].forEach(o => { ids.set(o.athleteId, c.event.commence); teamOf[o.athleteId] = teamIdOf(c, sd); })));
     const season = espnSeason(sport, events[0].commence);
     const logs = {};
-    let parseWarn = false, useBox = false;
+    let useBox = false; const parseIssues = [];
+    const nameOf = id => players.find(p => p.athleteId === id)?.name || ctxs.flatMap(c => ["home", "away"].flatMap(sd => c.outPlayers?.[sd] || [])).find(o => o.athleteId === id)?.player || `ESPN id ${id}`;
     const idList = [...ids.keys()];
     if (idList.length) {
       try { await ESPN.gamelog(sport, idList[0], season); }
@@ -1727,12 +1732,13 @@ const Model = (() => {
       log(`${S.label}: ESPN game logs for ${idList.length} players…`);
       await Net.pool(idList, async id => {
         const g = await ESPN.gamelog(sport, id, season);
-        if (g.fieldsFound < g.fieldsWanted) parseWarn = true;
+        // only a problem when the player has played: an empty log (injured, not debuted) has no columns at all
+        if (g.games.length && g.missing?.length) parseIssues.push(`${nameOf(id)} (${g.missing.join(", ")})`);
         let prev = [];
         if (g.games.length < (sport === "nba" ? 5 : 4)) prev = (await ESPN.gamelog(sport, id, season - 1).catch(() => ({ games: [] }))).games;
-        logs[id] = { cur: g.games, prev };
+        logs[id] = { cur: g.games, prev, missing: g.games.length ? g.missing || [] : [] };
       }, 4, (d, n) => { if (d % 20 === 0 || d === n) log(`  game logs ${d}/${n}`); });
-      if (parseWarn) log("  ⚠ some ESPN game-log columns were not recognised");
+      if (parseIssues.length) log(`  ⚠ ESPN game logs missing columns for ${parseIssues.length} player${parseIssues.length > 1 ? "s" : ""}: ${parseIssues.slice(0, 5).join("; ")}${parseIssues.length > 5 ? "; …" : ""}. Markets using those stats are skipped for them.`);
     }
     const missing = idList.filter(id => !logs[id]);
     if (missing.length && (useBox || missing.length > idList.length * 0.3)) {
@@ -1828,7 +1834,7 @@ const Model = (() => {
       if (p.unmatched || ["OUT", "DOUBTFUL"].includes(p.status)) continue;
       const c = p.ctx, lg = logs[p.athleteId];
       if (!lg) continue;
-      const pl = { ...p, games: before(lg.cur, c.event.commence), prevGames: lg.prev };
+      const pl = { ...p, games: before(lg.cur, c.event.commence), prevGames: lg.prev, missing: lg.missing || [] };
       const oppId = p.side === "home" ? c.awayId : c.homeId, oppKey = p.side === "home" ? c.ak : c.hk;
       const mainPr = {}; // base market -> de-vigged main-line prices (anchor for its alternate lines)
       const order = [...MKTS].sort((a, b) => /_alternate$/.test(a) - /_alternate$/.test(b));
@@ -3354,7 +3360,7 @@ const Demo = (() => {
 /* ============================================================================
    APP: UI, run loop, tabs.
    ========================================================================== */
-const VERSION = "v9 (13 Nov, multiple API keys)";
+const VERSION = "v9.1 (15 Nov, game-log check)";
 const App = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
