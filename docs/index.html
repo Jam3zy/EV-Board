@@ -42,6 +42,7 @@ input.selcb{margin:0 6px 0 0;vertical-align:-2px;cursor:pointer}
 .lu .k{margin-bottom:4px}.lut{width:100%;border-collapse:collapse}.lut td{padding:3px 6px 3px 0;border-bottom:1px solid var(--line);vertical-align:top}.lut td:first-child{width:34px}.tag.ok{background:var(--g-soft,#e3f4ea);color:var(--g,#1a7f4b)}
 .keys{border-collapse:collapse;margin-bottom:8px;font-size:13px}.keys th,.keys td{padding:5px 10px 5px 0;border-bottom:1px solid var(--line);text-align:left}.keys tr.on td{font-weight:600}.keyadd{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .mkset{margin-bottom:12px}.mkhead{display:flex;gap:8px;align-items:center;margin-bottom:4px}.mkgrp{display:grid;grid-template-columns:150px 1fr;gap:8px;margin:4px 0}.mkgrp .chks{display:flex;flex-wrap:wrap;gap:4px 12px}
+.hidinfo{margin:0 0 10px;padding:8px 12px;border-radius:8px;background:var(--y-soft,#fff6dd);line-height:1.6}.hidinfo[hidden]{display:none}
 .selbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px;padding:8px 12px;background:var(--acc-soft);border-radius:8px}.selbar[hidden]{display:none}th.cb,td.cb{width:26px;padding-right:0}td.cb input,th.cb input{cursor:pointer}
 .seg.multi button i{margin-right:6px}.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}.seg span{margin-left:5px;font-weight:500;font-size:12px;color:var(--mute)}
 label.f{display:inline-flex;gap:6px;align-items:center;color:var(--mute);font-size:12.5px}label.f input[type=number]{width:68px}
@@ -162,18 +163,18 @@ footer{color:var(--mute);font-size:12px;padding:0 24px 30px;max-width:980px}
     <input type="search" id="search" placeholder="Player or team">
   </div>
   <div class="filters">
+    <div class="seg" id="modeTabs" title="How bets are rated and ranked"><button data-mode="stats" type="button">Rank by stats (hit chance)</button><button data-mode="ev" type="button">Rank by value (EV)</button></div>
     <div class="seg multi" id="tierTabs" title="Tick any mix of ratings"></div>
     <select id="l5Sel" title="How many of the player's last 5 games cleared today's line for this side"></select>
     <label class="f" title="Best available price (decimal odds), e.g. 1.60 to 2.00">Odds $ <input type="number" id="oddsMin" min="1" step="0.05" placeholder="1.60"> to <input type="number" id="oddsMax" min="1" step="0.05" placeholder="2.00"></label>
-    <label class="f" title="The model's chance this bet wins (the Model % column)">Win % <input type="number" id="winMin" min="0" max="100" step="5" placeholder="min"> to <input type="number" id="winMax" min="0" max="100" step="5" placeholder="max"></label>
+    <label class="f" title="Stats mode: the hit chance. Value mode: the model's chance (Your prob column)"><span id="winLabel">Win %</span> <input type="number" id="winMin" min="0" max="100" step="5" placeholder="min"> to <input type="number" id="winMax" min="0" max="100" step="5" placeholder="max"></label>
     <button class="btn sm" id="fltReset" type="button" hidden>Reset filters</button>
   </div>
   <div class="selbar" id="selBar" hidden><b id="selCount"></b><button class="btn primary sm" id="selCopy">Copy for Excel</button>
     <button class="btn sm" id="selLog">Log to My bets</button><button class="btn sm" id="selClear">Clear</button>
     <span class="small mute">Uses each bet's best price and suggested stake. Edit odds or stake later in My bets or in Excel.</span></div>
-  <div class="legend small"><span class="tier-dot g"></span><b>Strong</b> EV 5%+, 3+ books, model close to market, player active
-    <span class="tier-dot y"></span><b>Lean</b> positive EV with a caution (hover the badge)
-    <span class="tier-dot r"></span><b>Avoid</b> negative EV, thin market or model far from market</div>
+  <div class="hidinfo small" id="hiddenInfo" hidden></div>
+  <div class="legend small" id="legend"></div>
   <div id="topPicks" class="picks"></div>
   <div class="tablewrap">
   <table id="board"><thead><tr>
@@ -3373,7 +3374,7 @@ const Demo = (() => {
 /* ============================================================================
    APP: UI, run loop, tabs.
    ========================================================================== */
-const VERSION = "v9.2 (15 Nov, props fix)";
+const VERSION = "v10 (15 Nov, stats mode)";
 const App = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -3391,12 +3392,12 @@ const App = (() => {
   const groupOf = (m, sp) => { const s = specFor(sp, m) || {}; return s.kind === "game" ? "@game" : s.alt ? "@alt" : s.kind === "yn" || s.kind === "first" ? "@yn" : "@props"; };
   const sideText = r => r.line == null ? r.outcome : /spreads/.test(r.market) ? `${r.outcome} ${r.line > 0 ? "+" : ""}${r.line}` : `${r.outcome} ${r.line}`;
 
-  const state = { rows: [], matchups: [], injuries: {}, sport: "", book: "", market: "", q: "", sort: "ev", dir: -1, flt: loadFilters(),
+  const state = { rows: [], matchups: [], injuries: {}, sport: "", book: "", market: "", q: "", sort: "tier", dir: -1, flt: loadFilters(),
                   open: new Set(), sel: new Set(), betSel: new Set(), lastRun: null, running: false, timer: null, diag: [] };
 
   /* ---------------------------------------------------------------- board filters (kept between visits) */
   function loadFilters() {
-    const d = { tiers: ["g", "y"], l5: "", oddsMin: "", oddsMax: "", winMin: "", winMax: "" };
+    const d = { mode: "stats", tiers: ["g", "y"], l5: "", oddsMin: "", oddsMax: "", winMin: "", winMax: "" };
     try { return Object.assign(d, JSON.parse(localStorage.getItem("evbet.filters.v1") || "{}")); } catch (e) { return d; }
   }
   function saveFilters() { try { localStorage.setItem("evbet.filters.v1", JSON.stringify(state.flt)); } catch (e) {} }
@@ -3439,9 +3440,11 @@ const App = (() => {
       }
       state.rows = rows; state.matchups = matchups; state.injuries = injuries; state.lastRun = Date.now();
       if (Settings.get("track") && rows.length) log(`Tracked ${Track.record(rows, Demo.active ? Demo.clock : Date.now())} outcomes for backtesting`);
+      if (rows.length) { const h = hiddenProps();
+        log(`Player props: ${h.total} priced, ${h.shown} on the board${h.reasons.length ? ` · hidden: ${h.reasons.slice(0, 4).map(([k, n]) => `${n} ${k}`).join(" · ")}` : ""}`); }
       try { await Bets.settle(log); } catch (e) { log("Bet settle failed: " + e.message); }
       const strong = rows.filter(r => rate(r).t === "g" && r.ev >= Settings.get("minEdge")).length;
-      log(`Done. ${rows.filter(r => r.ev >= Settings.get("minEdge")).length} plays at or above ${pct(Settings.get("minEdge"))} EV (${strong} rated Strong).${!Demo.active && Net.runCost() ? ` This refresh used ${Net.runCost()} credits.` : ""}`);
+      log(`Done. ${statsMode() ? `${rows.filter(r => rate(r).t === "g").length} Strong and ${rows.filter(r => rate(r).t === "y").length} Lean by hit chance` : `${rows.filter(r => r.ev >= Settings.get("minEdge")).length} plays at or above ${pct(Settings.get("minEdge"))} EV (${strong} rated Strong)`}.${!Demo.active && Net.runCost() ? ` This refresh used ${Net.runCost()} credits.` : ""}`);
       updateEstimate();
     } finally {
       state.running = false; $("#runBtn").disabled = false; $("#runBtn").textContent = "Run now";
@@ -3507,7 +3510,47 @@ const App = (() => {
   }
 
   /* ---------------------------------------------------------------- rating (green / yellow / red) */
-  function rate(r) {
+  /* ---------------------------------------------------------------- stats mode: how likely is the bet to land? */
+  // blend of the projection (minutes, matchup, pace, injuries) and the player's record against this exact line.
+  // Small samples are pulled towards the projection so 2/2 or 0/1 can't dominate.
+  const statsMode = () => state.flt.mode !== "ev";
+  function hitScore(r) {
+    if (r._hs !== undefined && r._hsAt === r.modelProb) return r._hs;
+    const H = r.hist?.hit, p = r.modelProb, parts = [[p, 0.45]];
+    const shr = (x, k = 3) => (x && x.n ? (x.hits + k * p) / (x.n + k) : null);
+    if (H) {
+      if (H.l10?.n) parts.push([shr(H.l10), 0.2]);
+      if (H.season?.n >= 3) parts.push([shr(H.season, 4), 0.15]);
+      if (H.l5?.n) parts.push([shr(H.l5, 3), 0.1]);
+      if (H.vsOpp?.n >= 2) parts.push([shr(H.vsOpp, 4), 0.1]);
+      else if (H.lastSeason?.n >= 8) parts.push([shr(H.lastSeason, 6), 0.05]);
+    }
+    const w = parts.reduce((s, [, x]) => s + x, 0), s = parts.reduce((t, [v, x]) => t + (isFinite(v) ? v * x : 0), 0) / w;
+    r._hs = isFinite(s) ? s : NaN; r._hsAt = r.modelProb; return r._hs;
+  }
+  function rateStats(r) {
+    const s = hitScore(r), H = r.hist?.hit, why = [], f = x => (x && x.n ? `${x.hits}/${x.n}` : "—");
+    if (!isFinite(s)) return { t: "r", label: "Avoid", why: ["no projection"], score: NaN };
+    why.push(`${Math.round(s * 100)}% hit chance`, `model ${pct(r.modelProb)}`);
+    if (H) why.push(`last 10 ${f(H.l10)}`, `season ${f(H.season)}`, ...(H.vsOpp?.n ? [`vs opp ${f(H.vsOpp)}`] : []));
+    if (r.hist?.season && isFinite(r.hist.season.avg) && r.line != null) why.push(`avg ${f1(r.hist.season.avg)} vs line ${r.line}`);
+    const cautions = [];
+    const games = H?.season?.n || 0, kind = specFor(r.sport, r.market)?.kind;
+    if (kind !== "game" && games < 5) cautions.push(`only ${games} games this season`);
+    if (r.status === "QUESTIONABLE") cautions.push("player questionable");
+    if (kind === "first") cautions.push("first-scorer markets are mostly luck");
+    if (r.ev < -0.1) cautions.push(`price too short for its chance (EV ${spct(r.ev)}): better as a multi leg`);
+    if (r.bestPrice < 1.3) cautions.push(`only pays $${r.bestPrice.toFixed(2)}: hardly worth a single`);
+    if (isFinite(r.marketProb) && r.modelProb - r.marketProb > 0.15) cautions.push(`bookies make it only ${pct(r.marketProb)}: check team news before betting`);
+    const mv = typeof Lines !== "undefined" ? Lines.movement(r) : null;
+    if (mv && mv.toward === -1) cautions.push(`market moved against it (${mv.detail})`);
+    let t = s >= 0.68 && r.modelProb >= 0.6 ? "g" : s >= 0.57 ? "y" : "r";
+    if (t === "g" && cautions.length) t = "y";
+    if (kind === "first") t = "r";
+    return { t, label: { g: "Strong", y: "Lean", r: "Avoid" }[t], why: [...why, ...cautions], score: s };
+  }
+  function rate(r) { return statsMode() ? rateStats(r) : rateEv(r); }
+  function rateEv(r) {
     const gap = isFinite(r.marketProb) ? Math.abs(r.modelProb - r.marketProb) : NaN, why = [];
     if (!(r.ev >= 0)) return { t: "r", label: "Avoid", why: ["Negative EV at the best AU price"] };
     if ((r.nBooks || 0) < 2) return { t: "r", label: "Avoid", why: ["Only one book quotes it: no reliable fair price"] };
@@ -3604,18 +3647,57 @@ const App = (() => {
       const t = rate(r).t;
       if (skip !== "tier" && !tiers.has(t)) return false;
       // Strong / Lean must also clear Min EV and the market checks; Avoid rows are shown as-is when ticked
-      if (t !== "r" && !(r.ev >= minEdge && (r.nBooks || 0) >= minBooks && (!isFinite(r.marketProb) || Math.abs(r.modelProb - r.marketProb) <= gap))) return false;
+      if (t !== "r" && !statsMode() && !(r.ev >= minEdge && (r.nBooks || 0) >= minBooks && (!isFinite(r.marketProb) || Math.abs(r.modelProb - r.marketProb) <= gap))) return false;
       if (F.l5 && skip !== "l5") { const h = l5Hits(r); if (h == null || !l5(h)) return false; }
       if (isFinite(oMin) && !(r.bestPrice >= oMin)) return false;
       if (isFinite(oMax) && !(r.bestPrice <= oMax)) return false;
-      if (isFinite(wMin) && !(r.modelProb >= wMin)) return false;
-      if (isFinite(wMax) && !(r.modelProb <= wMax)) return false;
+      const win = statsMode() ? hitScore(r) : r.modelProb;
+      if (isFinite(wMin) && !(win >= wMin)) return false;
+      if (isFinite(wMax) && !(win <= wMax)) return false;
       return (skip === "sport" || !state.sport || r.sport === state.sport) && (!state.book || r.bestBook === state.book) &&
       (!state.market || (state.market[0] === "@" ? groupOf(r.market, r.sport) === state.market : r.market === state.market)) &&
       (!state.q || `${r.player} ${r.team} ${r.home} ${r.away}`.toLowerCase().includes(state.q));
     });
   }
+  // why player props aren't on the board: first reason each hidden prop fails, in the order the checks run
+  function hiddenProps() {
+    const F = state.flt, tiers = new Set(F.tiers), l5 = L5_OPTS[F.l5] || L5_OPTS[""];
+    const oMin = parseFloat(F.oddsMin), oMax = parseFloat(F.oddsMax), wMin = parseFloat(F.winMin) / 100, wMax = parseFloat(F.winMax) / 100;
+    const minEdge = Settings.get("minEdge"), minBooks = Settings.get("minBooks"), gap = Settings.get("maxGap");
+    const props = state.rows.filter(r => groupOf(r.market, r.sport) !== "@game"), shown = new Set(filtered()), c = {};
+    const add = k => (c[k] = (c[k] || 0) + 1);
+    for (const r of props) {
+      if (shown.has(r)) continue;
+      if (r.noBook) { add("none of your ticked bookies offer it (Bookies button)"); continue; }
+      const rt = rate(r);
+      if (!tiers.has(rt.t)) { add(rt.t === "r" ? `rated Avoid: ${rt.why[0].split(":")[0].toLowerCase()}` : `rated ${rt.label} (unticked)`); continue; }
+      if (rt.t !== "r" && !statsMode()) {
+        if (!(r.ev >= minEdge)) { add(`EV below your Min EV (${(minEdge * 100).toFixed(1)}%)`); continue; }
+        if (!((r.nBooks || 0) >= minBooks)) { add(`fewer than your Min books (${minBooks})`); continue; }
+        if (isFinite(r.marketProb) && Math.abs(r.modelProb - r.marketProb) > gap) { add(`model–market gap over your Max gap (${(gap * 100).toFixed(0)}%)`); continue; }
+      }
+      if (F.l5) { const h = l5Hits(r); if (h == null || !l5(h)) { add("Last 5 filter"); continue; } }
+      if ((isFinite(oMin) && !(r.bestPrice >= oMin)) || (isFinite(oMax) && !(r.bestPrice <= oMax))) { add("Odds filter"); continue; }
+      const win = statsMode() ? hitScore(r) : r.modelProb;
+      if ((isFinite(wMin) && !(win >= wMin)) || (isFinite(wMax) && !(win <= wMax))) { add("Win % filter"); continue; }
+      add("sport / market / bookie / search filter");
+    }
+    return { total: props.length, shown: props.filter(r => shown.has(r)).length, reasons: Object.entries(c).sort((a, b) => b[1] - a[1]) };
+  }
+  function renderHidden() {
+    const el = $("#hiddenInfo"); if (!el) return;
+    const h = hiddenProps();
+    if (!h.total || h.shown >= 20) { el.hidden = true; return; }
+    el.hidden = false;
+    el.innerHTML = `<b>${h.shown} of ${h.total.toLocaleString()} player props are showing.</b> Hidden because: ${h.reasons.slice(0, 5).map(([k, n]) => `${n.toLocaleString()} ${esc(k)}`).join(" · ")}.
+      <button class="btn sm" id="showAllProps" type="button">Show every prop</button>`;
+  }
   function renderFilters() {
+    document.querySelectorAll("#modeTabs [data-mode]").forEach(b => b.classList.toggle("on", (b.dataset.mode === "stats") === statsMode()));
+    $("#legend").innerHTML = statsMode()
+      ? `<span class="tier-dot g"></span><b>Strong</b> 68%+ hit chance, model 60%+, no cautions <span class="tier-dot y"></span><b>Lean</b> 57–68%, or Strong with a caution <span class="tier-dot r"></span><b>Avoid</b> under 57%. Hit chance = projection (minutes, matchup, pace, injuries) blended with the player's record against this line. EV is shown for information only.`
+      : `<span class="tier-dot g"></span><b>Strong</b> EV 5%+, 3+ books, model close to market, player active <span class="tier-dot y"></span><b>Lean</b> positive EV with a caution (hover the badge) <span class="tier-dot r"></span><b>Avoid</b> negative EV, thin market or model far from market`;
+    $("#winLabel").textContent = statsMode() ? "Hit %" : "Win %";
     const F = state.flt, base = filtered("tier"), names = { g: "Strong", y: "Lean", r: "Avoid" };
     $("#tierTabs").innerHTML = ["g", "y", "r"].map(t => `<button data-tier="${t}" class="${F.tiers.includes(t) ? "on" : ""}"><i class="tier-dot ${t}"></i>${names[t]}<span>${base.filter(r => rate(r).t === t).length}</span></button>`).join("");
     const l5base = filtered("l5"), lab = { "": "Last 5: any", "5": "Hit 5 of 5", "4+": "Hit 4+ of 5", "3+": "Hit 3+ of 5", "<=2": "Hit 2 or fewer", "<=1": "Hit 1 or fewer", "0": "Hit 0 of 5" };
@@ -3626,7 +3708,7 @@ const App = (() => {
     const active = F.l5 || F.oddsMin !== "" || F.oddsMax !== "" || F.winMin !== "" || F.winMax !== "" || F.tiers.join() !== "g,y";
     $("#fltReset").hidden = !active;
   }
-  function renderBoard() { state.shownKeys = []; renderBoardInner(); renderSelBar(); }
+  function renderBoard() { state.shownKeys = []; renderBoardInner(); renderSelBar(); renderHidden(); }
   function renderBoardInner() {
     renderFilters();
     const all = filtered("sport");
@@ -3641,18 +3723,18 @@ const App = (() => {
     $("#marketSel").innerHTML = opt("", `All markets (${markets.length})`) +
       `<optgroup label="Groups">${MGROUPS.map(([g, t]) => opt(g, `${t} (${markets.filter(m => groupOf(m, mSport[m]) === g).length})`)).join("")}</optgroup>` +
       MGROUPS.map(([g, t]) => { const ms = markets.filter(m => groupOf(m, mSport[m]) === g); return ms.length ? `<optgroup label="${t}">${ms.map(m => opt(m, label(m, mSport[m]))).join("")}</optgroup>` : ""; }).join("");
-    const key = { tier: r => ({ g: 2, y: 1, r: 0 }[rate(r).t] * 10 + r.ev), ev: r => r.ev, model: r => r.modelProb, market: r => r.marketProb, stake: r => r.stake, kick: r => Date.parse(r.commence),
+    const key = { tier: r => ({ g: 2, y: 1, r: 0 }[rate(r).t] * 10 + (statsMode() ? hitScore(r) : r.ev)), ev: r => r.ev, model: r => statsMode() ? hitScore(r) : r.modelProb, market: r => r.marketProb, stake: r => r.stake, kick: r => Date.parse(r.commence),
                   player: r => r.player || r.team, book: r => r.bestBook, proj: r => r.mean, price: r => r.bestNet }[state.sort];
     const rows = filtered().sort((a, b) => { const x = key(a), y = key(b); return (x > y ? 1 : x < y ? -1 : 0) * state.dir; });
     // best bets: top green plays, one per player
-    const seenP = new Set(), picks = filtered().filter(r => rate(r).t === "g").sort((a, b) => b.ev - a.ev)
+    const seenP = new Set(), picks = filtered().filter(r => rate(r).t === "g" && (!statsMode() || r.bestPrice >= 1.4)).sort((a, b) => statsMode() ? hitScore(b) - hitScore(a) : b.ev - a.ev)
       .filter(r => { const k = r.sport + (r.player || r.team); if (seenP.has(k)) return false; seenP.add(k); return true; }).slice(0, 4);
-    $("#topPicks").innerHTML = picks.map((r, i) => `<div class="pick"><div class="t">${i === 0 ? "★ Best bet" : "Strong"} · ${r.sport.toUpperCase()}</div>
+    $("#topPicks").innerHTML = picks.map((r, i) => `<div class="pick"><div class="t">${i === 0 ? (statsMode() ? "★ Most likely to hit" : "★ Best bet") : "Strong"} · ${r.sport.toUpperCase()}</div>
       <div class="p">${esc(r.player || r.team)} — ${esc(label(r.market, r.sport))} ${esc(sideText(r))}</div>
       <div class="m">${esc(r.away)} @ ${esc(r.home)} · ${kick(r.commence)}</div>
-      <div class="row2"><span><a class="book" href="${esc(r.bestLink)}" target="_blank" rel="noopener">${esc(bookName(r.bestBook))}</a> <b>${price(r.bestPrice)}</b> · stake ${money(r.stake)}</span><span class="evbig">${spct(r.ev)}</span></div>
+      <div class="row2"><span><a class="book" href="${esc(r.bestLink)}" target="_blank" rel="noopener">${esc(bookName(r.bestBook))}</a> <b>${price(r.bestPrice)}</b> · stake ${money(r.stake)}</span><span class="evbig">${statsMode() ? `${Math.round(hitScore(r) * 100)}%` : spct(r.ev)}</span></div>
       ${r.hist?.last5?.length ? `<div class="row2"><span class="m">Last 5 ${l5Bars(r, 70, 22)} · season avg ${f1(r.hist.season.avg)}${r.hist.career ? ` · career ${f1(r.hist.career.avg)}` : ""}</span></div>` : ""}
-      <div class="row2"><span class="m">You ${pct(r.modelProb)} vs market ${pct(r.marketProb)}</span><button class="logbtn" data-log="${esc([r.eventId, r.market, r.player, r.outcome, r.line].join("|"))}">Log</button></div></div>`).join("");
+      <div class="row2"><span class="m">${statsMode() ? `${r.hist?.hit ? `L10 ${r.hist.hit.l10 ? `${r.hist.hit.l10.hits}/${r.hist.hit.l10.n}` : "—"} · season ${r.hist.hit.season ? `${r.hist.hit.season.hits}/${r.hist.hit.season.n}` : "—"} · ` : ""}EV ${spct(r.ev)}` : `You ${pct(r.modelProb)} vs market ${pct(r.marketProb)}`}</span><button class="logbtn" data-log="${esc([r.eventId, r.market, r.player, r.outcome, r.line].join("|"))}">Log</button></div></div>`).join("");
     document.querySelectorAll("#board th[data-k]").forEach(th => th.classList.toggle("sorted", th.dataset.k === state.sort));
     if (!state.rows.length) {
       $("#boardBody").innerHTML = `<tr><td colspan="15" class="empty">${state.lastRun ? "No priced props this run. Check the Log tab." : "Press <b>Run now</b> to pull AU prices and ESPN data."}</td></tr>`;
@@ -3670,7 +3752,7 @@ const App = (() => {
                      ...(r.notes || []).filter(n => n !== "Questionable").map(n => `<span class="tag">${esc(n)}</span>`)].join("");
       const rt = rate(r);
       const main = `<tr class="row ${rt.t}" data-k="${esc(k)}">
-        <td class="nw"><input type="checkbox" class="selcb" data-sel="${esc(k)}" ${state.sel.has(k) ? "checked" : ""} aria-label="Select bet"><span class="badge ${rt.t}" title="${esc(rt.why.join(" · "))}">${rt.label}</span> <span class="sp">${r.sport.toUpperCase()}</span></td>
+        <td class="nw"><input type="checkbox" class="selcb" data-sel="${esc(k)}" ${state.sel.has(k) ? "checked" : ""} aria-label="Select bet"><span class="badge ${rt.t}" title="${esc(rt.why.join(" · "))}">${rt.label}${statsMode() && isFinite(rt.score) ? ` ${Math.round(rt.score * 100)}%` : ""}</span> <span class="sp">${r.sport.toUpperCase()}</span></td>
         <td class="who">${esc(r.player || r.team)}${r.player ? `<small>${esc(r.team)}</small>` : ""}</td>
         <td>${esc(label(r.market, r.sport))}</td><td class="nw">${esc(side)}</td><td class="nw">${l5Bars(r)}</td>
         <td class="nw"><a href="${esc(r.bestLink)}" target="_blank" rel="noopener" class="book">${esc(bookName(r.bestBook))}</a> <b class="px">${price(r.bestPrice)}</b></td>
@@ -4093,6 +4175,8 @@ const App = (() => {
     document.querySelectorAll("#board th[data-k]").forEach(th => th.addEventListener("click", () => {
       state.dir = state.sort === th.dataset.k ? -state.dir : -1; state.sort = th.dataset.k; renderBoard(); }));
     $("#topPicks").addEventListener("click", e => { const lb = e.target.closest("[data-log]"); if (lb) openBetDialog(state.rowByKey[lb.dataset.log]); });
+    $("#modeTabs").addEventListener("click", e => { const b = e.target.closest("[data-mode]"); if (!b) return;
+      state.flt.mode = b.dataset.mode; saveFilters(); state.sort = "tier"; state.dir = -1; renderBoard(); });
     $("#tierTabs").addEventListener("click", e => { const b = e.target.closest("[data-tier]"); if (!b) return;
       const t = b.dataset.tier, set = new Set(state.flt.tiers); set.has(t) ? set.delete(t) : set.add(t);
       state.flt.tiers = ["g", "y", "r"].filter(x => set.has(x)); saveFilters(); renderBoard(); });
@@ -4113,7 +4197,12 @@ const App = (() => {
       if (await copyBets([...list].sort((a, b) => a.placedAt - b.placedAt))) { state.betSel.clear(); renderBets(); } });
     $("#l5Sel").addEventListener("change", e => { state.flt.l5 = e.target.value; saveFilters(); renderBoard(); });
     for (const id of ["oddsMin", "oddsMax", "winMin", "winMax"]) $("#" + id).addEventListener("input", e => { state.flt[id] = e.target.value.trim(); saveFilters(); renderBoard(); });
-    $("#fltReset").addEventListener("click", () => { state.flt = { tiers: ["g", "y"], l5: "", oddsMin: "", oddsMax: "", winMin: "", winMax: "" }; saveFilters(); renderBoard(); });
+    $("#hiddenInfo").addEventListener("click", e => {
+      if (e.target.id !== "showAllProps") return;
+      state.flt = { mode: state.flt.mode, tiers: ["g", "y", "r"], l5: "", oddsMin: "", oddsMax: "", winMin: "", winMax: "" }; saveFilters();
+      state.market = "@props"; state.book = ""; state.q = ""; state.sport = ""; if ($("#search")) $("#search").value = "";
+      renderBoard(); });
+    $("#fltReset").addEventListener("click", () => { state.flt = { mode: state.flt.mode, tiers: ["g", "y"], l5: "", oddsMin: "", oddsMax: "", winMin: "", winMax: "" }; saveFilters(); renderBoard(); });
     renderBookPicker();
     $("#bookPickBtn").addEventListener("click", e => { e.stopPropagation(); $("#bookPick").classList.toggle("open"); });
     document.addEventListener("click", e => { if (!e.target.closest("#bookPick")) $("#bookPick").classList.remove("open"); });
