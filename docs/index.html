@@ -497,7 +497,7 @@ const Settings = (() => {
     lookaheadH: { nfl: 96, nba: 24 },           // only fetch props for games starting within this many hours
     markets: { nfl: [...SPORTS.nfl.markets], nba: [...SPORTS.nba.markets] },
     badMarkets: [],                             // markets The Odds API rejected (422); skipped automatically
-    marketsV: 2,
+    marketsV: 3, badMarketsAt: 0,
   };
   let s = { ...defaults };
   try { s = { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch (e) {}
@@ -506,6 +506,10 @@ const Settings = (() => {
     s.markets = Object.fromEntries(Object.keys(SPORTS).map(k => [k, [...new Set([...(s.markets?.[k] || []), ...SPORTS[k].markets])]]));
     s.marketsV = 2; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
   }
+  // v3: "not offered" markets are remembered per sport and only for a week. Older versions could wrongly
+  // strike off every market after an unrelated error, so start clean.
+  if (!(s.marketsV >= 3)) { s.badMarkets = []; s.badMarketsAt = 0; s.marketsV = 3; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+  if (s.badMarkets?.length && Date.now() - (s.badMarketsAt || 0) > 7 * 864e5) { s.badMarkets = []; s.badMarketsAt = 0; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
   return {
     get: k => s[k], all: () => ({ ...s }), defaults,
     set(k, v) { s[k] = v; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} },
@@ -609,7 +613,7 @@ const Net = (() => {
           const nk = Keys.failover(usedKey, /quota|credit|usage/i.test(detail + code) ? "empty" : "invalid");
           if (nk && nk !== usedKey) return getJSON(url.replace(/apiKey=[^&]+/, "apiKey=" + encodeURIComponent(nk)), { ttl, cacheKey, odds });
         }
-        const e = new Error(`${res.status} ${detail || res.statusText} — ${url.split("?")[0].replace(/^https?:\/\//, "")}`); e.status = res.status; throw e;
+        const e = new Error(`${res.status} ${detail || res.statusText} — ${url.split("?")[0].replace(/^https?:\/\//, "")}`); e.status = res.status; e.detail = detail; e.code = code; throw e;
       }
       data = await res.json();
       // that call used the last credit: later calls go to the next key
@@ -679,7 +683,8 @@ const OddsAPI = (() => {
     const d = await Net.getJSON(`${BASE}/sports/${SPORTS[sport].odds}/events?apiKey=${encodeURIComponent(Settings.get("apiKey"))}&dateFormat=iso`, { ttl: 5 * 60e3, odds: true });
     return d.map(e => ({ id: e.id, commence: e.commence_time, home: e.home_team, away: e.away_team }));
   }
-  const marketsFor = sport => (Settings.get("markets")[sport] || SPORTS[sport].markets).filter(m => !Settings.get("badMarkets").includes(m));
+  const isBad = (sport, m) => Settings.get("badMarkets").includes(`${sport}:${m}`);
+  const marketsFor = sport => (Settings.get("markets")[sport] || SPORTS[sport].markets).filter(m => !isBad(sport, m));
   // Player props for one game. A 422 (a market key the API won't accept) is isolated by splitting the
   // market list, so one bad market never blanks the whole game; rejected markets are remembered.
   async function props(sport, eventId, markets = marketsFor(sport)) {
@@ -688,12 +693,17 @@ const OddsAPI = (() => {
     try { return normalise([await Net.getJSON(url(markets, true), { odds: true })], sport); }
     catch (e) {
       if (e.status !== 422) throw e;
+      // only hunt for a bad market when the API says a market is the problem; any other 422 is reported as is
+      if (!/market/i.test(`${e.detail || ""} ${e.code || ""} ${e.message}`)) throw e;
       if (markets.length > 1) {
         const mid = Math.ceil(markets.length / 2);
         return [...await props(sport, eventId, markets.slice(0, mid)), ...await props(sport, eventId, markets.slice(mid))];
       }
       try { return normalise([await Net.getJSON(url(markets, false), { odds: true })], sport); }
-      catch (e2) { if (e2.status !== 422) throw e2; Settings.set("badMarkets", [...new Set([...Settings.get("badMarkets"), markets[0]])]); return []; }
+      catch (e2) {
+        if (e2.status !== 422 || !/market/i.test(`${e2.detail || ""} ${e2.code || ""} ${e2.message}`)) throw e2;
+        if (!Settings.get("badMarkets").length) Settings.set("badMarketsAt", Date.now());
+        Settings.set("badMarkets", [...new Set([...Settings.get("badMarkets"), `${sport}:${markets[0]}`])]); return []; }
     }
   }
   // /sports costs no credits: used to validate the key
@@ -707,7 +717,7 @@ const OddsAPI = (() => {
       if (res.status === 401) Keys.mark(key, /quota|credit|usage/i.test(d) ? "empty" : "invalid"); }
     return Keys.list().find(k => k.key === key);
   }
-  return { gameLines, props, normalise, check, checkKey, events, marketsFor };
+  return { gameLines, props, normalise, check, checkKey, events, marketsFor, isBad };
 })();
 
 /* ---------------------------------------------------------------- ESPN (unofficial public JSON) */
@@ -1640,7 +1650,9 @@ const Model = (() => {
     const quotes = gl.quotes.filter(q => events.some(e => e.id === q.eventId));
     let propRows = 0;
     propRes.forEach((r, i) => { if (Array.isArray(r)) { quotes.push(...r); propRows += r.length; } else log(`  props failed for ${events[i].away} @ ${events[i].home}: ${r?.__error?.message}`); });
-    if (!propRows) log(`  ⚠ no Australian bookmaker is offering ${S.label} player props for these games yet (AU books often post props closer to game time). Moneylines from ESPN's predictor can still price.`);
+    const ticked = (Settings.get("markets")[sport] || []).length;
+    if (!MKTS.length) log(`  ⚠ no ${S.label} prop markets requested: ${ticked ? "every ticked market is marked \"not offered\" (Settings → Markets → Reset)" : "none are ticked in Settings → Markets"}.`);
+    else if (!propRows) log(`  ⚠ ${MKTS.length} markets requested but no Australian bookmaker returned ${S.label} player props for these games yet (AU books often post props closer to game time). Moneylines can still price.`);
     else log(`  ${propRows} prop prices from ${new Set(quotes.filter(q => q.player).map(q => q.book)).size} AU books`);
 
     // ---- ESPN context
@@ -3234,6 +3246,7 @@ const Demo = (() => {
     if (/the-odds-api\.com/.test(url)) {
       if ((m = /\/events\/([0-9a-f]+)\/odds/.exec(url))) {
         if (api.rejectMarket && new RegExp(api.rejectMarket).test(url)) throw Object.assign(new Error("422 Invalid markets"), { status: 422 });
+        if (api.rejectOther) throw Object.assign(new Error("422 Event is no longer available"), { status: 422, detail: "Event is no longer available", code: "EVENT_EXPIRED" });
         const g = W.games.find(x => hex("odds" + x.id) === m[1]);
         if (!g) throw Object.assign(new Error("404 event not found"), { status: 404 });
         const wanted = (/[?&]markets=([^&]+)/.exec(url)?.[1] || "").split(",");
@@ -3360,7 +3373,7 @@ const Demo = (() => {
 /* ============================================================================
    APP: UI, run loop, tabs.
    ========================================================================== */
-const VERSION = "v9.1 (15 Nov, game-log check)";
+const VERSION = "v9.2 (15 Nov, props fix)";
 const App = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -3916,9 +3929,9 @@ const App = (() => {
     renderKeys();
     $("#setMarkets").innerHTML = Object.entries(SPORTS).map(([k, v]) => `<div class="mkset"><div class="mkhead"><b>${v.label}</b>
         <button type="button" class="btn sm" data-mk-all="${k}">All</button><button type="button" class="btn sm" data-mk-none="${k}">None</button>
-        <span class="small mute">${s.markets[k].length} of ${v.markets.length} on</span></div>` +
+        <span class="small mute">${s.markets[k].length} of ${v.markets.length} on${v.markets.some(m => OddsAPI.isBad(k, m)) ? ` · ${v.markets.filter(m => OddsAPI.isBad(k, m)).length} marked not offered <button type="button" class="btn sm" data-mk-reset="1">Reset</button>` : ""}</span></div>` +
       MGROUPS.map(([g, t]) => { const ms = v.markets.filter(m => groupOf(m, k) === g); return ms.length ? `<div class="mkgrp"><span class="small mute">${t}</span><span class="chks">${ms.map(m =>
-        `<label class="chk"><input type="checkbox" data-sport="${k}" value="${m}" ${s.markets[k].includes(m) ? "checked" : ""}> ${marketLabel(m, k)}${s.badMarkets.includes(m) ? " (not offered)" : ""}</label>`).join("")}</span></div>` : ""; }).join("") + `</div>`).join("");
+        `<label class="chk"><input type="checkbox" data-sport="${k}" value="${m}" ${s.markets[k].includes(m) ? "checked" : ""}> ${marketLabel(m, k)}${OddsAPI.isBad(k, m) ? ` <span class="mute">(not offered)</span>` : ""}</label>`).join("")}</span></div>` : ""; }).join("") + `</div>`).join("");
     $("#setBooks").innerHTML = Object.entries(AU_BOOKS).map(([k, v]) => `<label class="chk"><input type="checkbox" value="${k}" ${s.bettable.includes(k) ? "checked" : ""}> ${v}</label>`).join("");
     for (const [id, key, mult] of [["setComm", "betfairCommission", 100], ["setMinEdge", "minEdge", 100], ["setMinBooks", "minBooks", 1], ["setGap", "maxGap", 100],
       ["setWeight", "modelWeight", 1], ["setBankroll", "bankroll", 1], ["setUnit", "unitSize", 1], ["setKelly", "kellyFraction", 100], ["setCap", "kellyCap", 100]]) $("#" + id).value = +(s[key] * mult).toFixed(4);
@@ -3954,6 +3967,7 @@ const App = (() => {
     $("#setWeather").addEventListener("change", e => Settings.set("weather", e.target.checked));
     $("#setTrack").addEventListener("change", e => Settings.set("track", e.target.checked));
     $("#setMarkets").addEventListener("click", e => {
+      if (e.target.closest("[data-mk-reset]")) { Settings.set("badMarkets", []); Settings.set("badMarketsAt", 0); renderSettings(); updateEstimate(); flash("Cleared. Every ticked market will be requested on the next refresh."); return; }
       const a = e.target.closest("[data-mk-all]"), n = e.target.closest("[data-mk-none]"); if (!a && !n) return;
       const k = (a || n).dataset.mkAll || (a || n).dataset.mkNone, mk = { ...Settings.get("markets") };
       mk[k] = a ? [...SPORTS[k].markets] : []; Settings.set("markets", mk); renderSettings(); updateEstimate(); });
